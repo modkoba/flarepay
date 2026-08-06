@@ -1,0 +1,19 @@
+{
+  "name": "flarekit-phase0",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "research": "tsx scripts/research.ts",
+    "measure": "tsx scripts/measure.ts",
+    "test-failures": "tsx scripts/test-failures.ts"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0",
+    "tsx": "^4.7.0",
+    "@types/node": "^22.0.0"
+  }
+}

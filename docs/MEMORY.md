@@ -1,0 +1,5 @@
+- [FlareKit Idea](docs/IDEA.md) — SDK wrapping FDC for cross-chain attestation
+- [FlareKit PRD](docs/PRD.md) — product requirements, user stories, benchmarks
+- [FlareKit Demo Plan](docs/DEMO_PLAN.md) — demo app design, script, deployment
+- [FlareKit Action Items](docs/ACTION_ITEMS.md) — phased task breakdown for hackathon build
+- [FlareKit TODO](TODO.md) — git-versioned task tracker (Now / Next / Later)
