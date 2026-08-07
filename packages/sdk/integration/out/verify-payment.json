@@ -1,0 +1,75 @@
+{
+  "generatedAt": "2026-08-07T03:05:32.058Z",
+  "payment": {
+    "hash": "7072E619E09B337B115E1F22787A8779D49CA703917E5A3242C09F21FA3BE4BD",
+    "account": "rJHkcfSTLNJeBZiQ38T3Xw9i431q9kNFgT",
+    "dest": "rpaMGhKWENA2BgSmKpAdXhkNwCYVMpmCLm"
+  },
+  "totalSeconds": 77.067,
+  "result": {
+    "verified": true,
+    "response": {
+      "blockNumber": "19698011",
+      "blockTimestamp": "1786071810",
+      "sourceAddressHash": "0x4f53b5605e805a43c42af8bf9b56be0c1d67c74198847d83cf07f9e6d033a51e",
+      "sourceAddressesRoot": "0xebd73e4f40abe2ba07fa5fa9d620f4d938017e90bea8a78288ef1a660a408d59",
+      "receivingAddressHash": "0x07cbe6fb3155f1b4938cac1925d21215681c2859e1fdf7b902cc7276e69ed187",
+      "intendedReceivingAddressHash": "0x07cbe6fb3155f1b4938cac1925d21215681c2859e1fdf7b902cc7276e69ed187",
+      "spentAmount": "101",
+      "intendedSpentAmount": "101",
+      "receivedAmount": "86",
+      "intendedReceivedAmount": "86",
+      "standardPaymentReference": "0x0000000000000000000000000000000000000000000000000000000000000000",
+      "oneToOne": true,
+      "status": "0"
+    },
+    "proof": {
+      "merkleProof": [
+        "0xf37b5bf179d9d4729f230f810162674a98ce11aab5241c1bc038352c58bbd817",
+        "0x0b8fcfff1ed9dea7cb80cf2077a0cb51952ce16deff7998f081744e72f021800",
+        "0x7edfbdd0dc0b3b045ef87fe85e8c0ac7a352bbd3a2728a05eb789d90bb3dd1a9"
+      ],
+      "data": {
+        "attestationType": "0x5061796d656e7400000000000000000000000000000000000000000000000000",
+        "sourceId": "0x7465737458525000000000000000000000000000000000000000000000000000",
+        "votingRound": "1418242",
+        "lowestUsedTimestamp": "1786071810",
+        "requestBody": {
+          "transactionId": "0x7072e619e09b337b115e1f22787a8779d49ca703917e5a3242c09f21fa3be4bd",
+          "inUtxo": "0",
+          "utxo": "0"
+        },
+        "responseBody": {
+          "blockNumber": "19698011",
+          "blockTimestamp": "1786071810",
+          "sourceAddressHash": "0x4f53b5605e805a43c42af8bf9b56be0c1d67c74198847d83cf07f9e6d033a51e",
+          "sourceAddressesRoot": "0xebd73e4f40abe2ba07fa5fa9d620f4d938017e90bea8a78288ef1a660a408d59",
+          "receivingAddressHash": "0x07cbe6fb3155f1b4938cac1925d21215681c2859e1fdf7b902cc7276e69ed187",
+          "intendedReceivingAddressHash": "0x07cbe6fb3155f1b4938cac1925d21215681c2859e1fdf7b902cc7276e69ed187",
+          "spentAmount": "101",
+          "intendedSpentAmount": "101",
+          "receivedAmount": "86",
+          "intendedReceivedAmount": "86",
+          "standardPaymentReference": "0x0000000000000000000000000000000000000000000000000000000000000000",
+          "oneToOne": true,
+          "status": "0"
+        }
+      }
+    },
+    "votingRoundId": 1418242,
+    "requestTxHash": "0x9506faa40a63a0e1fd1454909e2bdc9309099cf67dfb0b2c48808d05b2f98e12",
+    "feePaidWei": "1000",
+    "timings": {
+      "preparing": 0,
+      "prepared": 575,
+      "submitting": 984,
+      "submitted": 6606,
+      "waiting-round": 10495,
+      "round-finalized": 10499,
+      "fetching-proof": 5,
+      "proof-received": 1664,
+      "verifying": 0,
+      "done": 398
+    }
+  }
+}

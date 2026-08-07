@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlarePay — verify XRP payments on Flare with FlareKit</title>
+    <meta name="description" content="A checkout that accepts XRPL testnet payments and settles them with FDC proofs on Flare (Coston2), built on @flarekit/sdk." />
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="hero">
+        <div class="brand">Flare<span>Kit</span></div>
+        <h1>FlarePay</h1>
+        <p class="tagline">
+          Accept an XRP payment. Prove it on Flare. One SDK call.
+        </p>
+        <div class="badges">
+          <span class="badge">Coston2 testnet</span>
+          <span class="badge">FDC · FTSOv2 · Secure Random</span>
+          <span class="badge accent">Interoperable Asset Products</span>
+        </div>
+      </header>
+
+      <section class="prices" id="prices" aria-label="Live FTSOv2 prices">
+        <div class="price-chip" data-feed="FLR/USD">FLR/USD <b>—</b></div>
+        <div class="price-chip" data-feed="XRP/USD">XRP/USD <b>—</b></div>
+        <div class="price-chip" data-feed="BTC/USD">BTC/USD <b>—</b></div>
+        <span class="prices-note">live from FTSOv2 · <code>kit.ftso.read()</code></span>
+      </section>
+
+      <section class="card checkout">
+        <h2>Verify a payment</h2>
+        <p class="hint">
+          Paste an XRPL <em>testnet</em> payment hash — or let the demo find a recent one.
+        </p>
+        <div class="row">
+          <input id="txInput" spellcheck="false" placeholder="XRPL testnet transaction hash (64 hex chars)" />
+          <button id="findBtn" class="ghost" title="Find a recent native-XRP payment on XRPL testnet">Find recent</button>
+        </div>
+        <div class="row actions">
+          <button id="verifyBtn" class="primary">Verify live on Coston2</button>
+          <button id="replayBtn" class="ghost">Instant replay (recorded run)</button>
+        </div>
+        <p class="wallet-note" id="walletNote"></p>
+      </section>
+
+      <section class="card progress hidden" id="progressCard">
+        <div class="progress-head">
+          <h2 id="progressTitle">Verifying…</h2>
+          <div class="clock" id="clock">0:00</div>
+        </div>
+        <ol class="steps" id="steps">
+          <li data-step="prepare"><b>Prepare request</b><span>verifier computes canonical request + MIC</span><em></em></li>
+          <li data-step="submit"><b>Submit &amp; pay fee</b><span>FdcHub.requestAttestation on Coston2</span><em></em></li>
+          <li data-step="round"><b>Voting round finalizes</b><span>the honest part — ~90–180s of real protocol time</span><em></em></li>
+          <li data-step="proof"><b>Fetch Merkle proof</b><span>Data Availability layer</span><em></em></li>
+          <li data-step="verify"><b>Verify on-chain</b><span>FdcVerification.verifyPayment (staticCall)</span><em></em></li>
+        </ol>
+        <p class="round-note hidden" id="roundNote"></p>
+      </section>
+
+      <section class="card result hidden" id="resultCard">
+        <div class="verdict" id="verdict"></div>
+        <dl class="facts" id="facts"></dl>
+        <details>
+          <summary>Reusable proof (verifies forever — <code>kit.fdc.verifyProof()</code>)</summary>
+          <pre id="proofJson"></pre>
+        </details>
+      </section>
+
+      <section class="card code">
+        <h2>The entire integration</h2>
+        <pre><code>import { FlareKit } from "@flarekit/sdk";
+
+const kit = new FlareKit({ network: "coston2", privateKey });
+
+const result = await kit.fdc.verifyPayment(
+  { chain: "XRP", txId },
+  { onProgress: (e) =&gt; render(e) },
+);
+
+result.verified;                 // true — from the on-chain staticCall
+result.response.receivedAmount;  // bigint, drops</code></pre>
+      </section>
+
+      <section class="bench">
+        <div class="bench-col before">
+          <h3>Manual FDC</h3>
+          <ul>
+            <li>10 steps, 6 contracts, 2 REST APIs</li>
+            <li>ABI encoding, MIC, round math, polling, Merkle proofs</li>
+            <li>hours of docs before the first verification</li>
+          </ul>
+        </div>
+        <div class="bench-col after">
+          <h3>FlareKit</h3>
+          <ul>
+            <li>1 function call, typed end-to-end</li>
+            <li>progress events with honest ETAs</li>
+            <li>first verification in &lt; 5 minutes</li>
+          </ul>
+        </div>
+      </section>
+
+      <footer>
+        <p>
+          FDC voting rounds take ~90–180 seconds — that's the protocol, and this demo doesn't fake it.
+          The "instant replay" plays back a recorded live run, clearly labeled.
+        </p>
+        <p class="fine">FlareKit · Flare Summer Signal 2026 · Bounty 1 — Interoperable Asset Products</p>
+      </footer>
+    </main>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

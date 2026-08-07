@@ -1,0 +1,49 @@
+{
+  "generatedAt": "2026-08-06T21:05:36.448Z",
+  "address": "rGQWGoq3FFG8PJfVgWVigaYuyv6dXpkbn2",
+  "totalSeconds": 132.601,
+  "result": {
+    "verified": true,
+    "response": {
+      "isValid": true,
+      "standardAddress": "rGQWGoq3FFG8PJfVgWVigaYuyv6dXpkbn2",
+      "standardAddressHash": "0xf642cfda6b77393c33c3a93e2e6c4e3b41084d61b16fd98ced792e37f6cde45a"
+    },
+    "proof": {
+      "merkleProof": [
+        "0x632870c0dd93868084cbe040b2175aa3d341ea375d8dc5e30b58a4ef6cf212f0",
+        "0x423e4b0789618d36f63d8fac84c40e7573aad0a19c437760a78b1229d0100e2a",
+        "0x608f72a947b506a285dbce854e1c69264766e4c6b46ab7ffd5f1eb06cdb0d30c"
+      ],
+      "data": {
+        "attestationType": "0x4164647265737356616c69646974790000000000000000000000000000000000",
+        "sourceId": "0x7465737458525000000000000000000000000000000000000000000000000000",
+        "votingRound": "1418002",
+        "lowestUsedTimestamp": "18446744073709551615",
+        "requestBody": {
+          "addressStr": "rGQWGoq3FFG8PJfVgWVigaYuyv6dXpkbn2"
+        },
+        "responseBody": {
+          "isValid": true,
+          "standardAddress": "rGQWGoq3FFG8PJfVgWVigaYuyv6dXpkbn2",
+          "standardAddressHash": "0xf642cfda6b77393c33c3a93e2e6c4e3b41084d61b16fd98ced792e37f6cde45a"
+        }
+      }
+    },
+    "votingRoundId": 1418002,
+    "requestTxHash": "0x87d6259d452ec90dc61b5c867b3817e471e110a42039302e7625f057e2d39799",
+    "feePaidWei": "1000",
+    "timings": {
+      "preparing": 0,
+      "prepared": 642,
+      "submitting": 2084,
+      "submitted": 9823,
+      "waiting-round": 11657,
+      "round-finalized": 10488,
+      "fetching-proof": 5525,
+      "proof-received": 1626,
+      "verifying": 0,
+      "done": 564
+    }
+  }
+}
