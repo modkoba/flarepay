@@ -37,6 +37,9 @@ Every feature ships only after its live integration test passes (PRD §12). Late
 |---|---|---|
 | `fdc.verifyPayment` — real XRPL testnet payment | `verified: true` in 77.1s | round 1,418,242, tx `0x9506faa4…f98e12` |
 | `fdc.verifyAddress` — XRPL address | `verified: true` in 132.6s, cached proof re-verifies | round 1,418,002, tx `0x87d6259d…d39799` |
+| `fdc.verifyAddress` — DOGE testnet address | `verified: true` in 166.1s | round 1,418,259, tx `0xeeb264e7…dc6a96` |
+| `fdc.verifyEvmTransaction` — real Sepolia tx | `verified: true` in 169.6s, events decoded | round 1,418,264, tx `0x390a1948…11daa9` |
+| `fdc.capabilities` — live verifier support matrix | 5/7 routes up (BTC down upstream) | `integration/out/capabilities.json` |
 | `ftso.read` FLR/BTC/XRP vs USD | live prices | `integration/out/read-only.json` |
 | `random.get` | secure random | 〃 |
 | `fdc.estimate` | 1000 wei + honest ETA | 〃 |
@@ -100,11 +103,22 @@ phase0-research     the original manual FDC run the SDK was ported from
 
 Full scope: [docs/planning/PRD.md](docs/planning/PRD.md).
 
+## Chain support (live-tested unless noted)
+
+| Chain | Payment | AddressValidity | EVMTransaction |
+|---|---|---|---|
+| XRP (XRPL testnet) | ✅ proven | ✅ proven | — |
+| DOGE (testnet) | ⚙ route up; needs a testnet tx source¹ | ✅ proven | — |
+| BTC (testnet) | ⛔ verifier down upstream² | ⛔ 〃 | — |
+| ETH (Sepolia) | — | — | ✅ proven |
+
+¹ No public Dogecoin-testnet explorer API exists to source a tx; the code path is
+identical to the proven DOGE AddressValidity pipeline.
+² `fault filter abort` on all Coston2 `/verifier/btc/*` routes, observed 2026-08-07.
+`kit.fdc.capabilities()` probes this live so your app gets it as data, not a mystery 404.
+
 ## Status & caveats
 
 - Coston2 is the verified network; `flare`/`songbird` presets are structural placeholders
   until their endpoints pass the same live gate.
-- The Coston2 **BTC verifier route is currently down** upstream (`fault filter abort`,
-  observed 2026-08-07) — BTC paths are implemented and will be gated in when Flare's
-  verifier returns.
 - Not audited; testnet use only for now.

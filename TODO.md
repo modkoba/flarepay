@@ -35,10 +35,20 @@
 - [ ] `@flarekit/react` hooks (`useVerifyPayment` status machine)
 - [ ] `@flarekit/mcp` server — Claude zero-shot verify demo
 
+## Chain expansion (pulled forward from Later — done 2026-08-07) #sdk
+
+- [x] DOGE proven live: AddressValidity full lifecycle green (166.1s, round 1,418,259);
+      Payment route confirmed up, needs a Dogecoin-testnet tx source (no public explorer API)
+- [x] EVMTransaction (Sepolia) — full lifecycle green (169.6s, round 1,418,264, events decoded)
+- [x] `kit.fdc.capabilities()` — live verifier support matrix, no-cost probes
+- [x] Regression fixed + pinned in unit tests: empty decoded arrays became {} and broke
+      proof re-encoding ("invalid array value")
+
 ## Later — post-hackathon (PRD Milestones 2–3)
 
-- [ ] BTC + DOGE payment live tests (blocked upstream: Coston2 BTC verifier down 2026-08-07)
-- [ ] EVMTransaction + Web2Json attestation types
+- [ ] BTC payment + address live tests (blocked upstream: Coston2 BTC verifier down 2026-08-07)
+- [ ] DOGE Payment live test (needs testnet tx source — consider faucet + self-send)
+- [ ] Web2Json attestation type
 - [ ] `@flarekit/contracts` — FdcConsumerBase + escrow/paywall examples
 - [ ] Docs site with llms.txt, CI-compiled snippets
 - [ ] Songbird + mainnet presets through the live gate

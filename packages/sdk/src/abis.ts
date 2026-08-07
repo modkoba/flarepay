@@ -41,16 +41,25 @@ const PAYMENT_DATA_TUPLE =
   "int256 intendedSpentAmount, int256 receivedAmount, int256 intendedReceivedAmount, " +
   "bytes32 standardPaymentReference, bool oneToOne, uint8 status) responseBody)";
 
+const EVM_TRANSACTION_DATA_TUPLE =
+  "(bytes32 attestationType, bytes32 sourceId, uint64 votingRound, uint64 lowestUsedTimestamp, " +
+  "(bytes32 transactionHash, uint16 requiredConfirmations, bool provideInput, bool listEvents, uint32[] logIndices) requestBody, " +
+  "(uint64 blockNumber, uint64 timestamp, address sourceAddress, bool isDeployment, address receivingAddress, " +
+  "uint256 value, bytes input, uint8 status, " +
+  "(uint32 logIndex, address emitterAddress, bytes32[] topics, bytes data, bool removed)[] events) responseBody)";
+
 export const FDC_VERIFICATION_ABI = [
   "function fdcProtocolId() external view returns (uint8)",
   `function verifyAddressValidity((bytes32[] merkleProof, ${ADDRESS_VALIDITY_DATA_TUPLE} data) _proof) external view returns (bool)`,
   `function verifyPayment((bytes32[] merkleProof, ${PAYMENT_DATA_TUPLE} data) _proof) external view returns (bool)`,
+  `function verifyEVMTransaction((bytes32[] merkleProof, ${EVM_TRANSACTION_DATA_TUPLE} data) _proof) external view returns (bool)`,
 ];
 
 /** ABI tuple used to decode the DA layer's response_hex per attestation type. */
 export const RESPONSE_TUPLES: Record<string, string> = {
   AddressValidity: ADDRESS_VALIDITY_DATA_TUPLE,
   Payment: PAYMENT_DATA_TUPLE,
+  EVMTransaction: EVM_TRANSACTION_DATA_TUPLE,
 };
 
 export const FTSO_V2_ABI = [

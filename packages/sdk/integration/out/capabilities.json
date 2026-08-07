@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-08-07T03:28:13.075Z",
+  "capabilities": [
+    {
+      "type": "AddressValidity",
+      "chain": "XRP",
+      "status": "available"
+    },
+    {
+      "type": "Payment",
+      "chain": "XRP",
+      "status": "available",
+      "detail": "INVALID: TRANSACTION DOES NOT EXIST"
+    },
+    {
+      "type": "AddressValidity",
+      "chain": "BTC",
+      "status": "unavailable",
+      "detail": "Verifier service unavailable: fault filter abort"
+    },
+    {
+      "type": "Payment",
+      "chain": "BTC",
+      "status": "unavailable",
+      "detail": "Verifier service unavailable: fault filter abort"
+    },
+    {
+      "type": "AddressValidity",
+      "chain": "DOGE",
+      "status": "available"
+    },
+    {
+      "type": "Payment",
+      "chain": "DOGE",
+      "status": "available",
+      "detail": "INVALID: TRANSACTION DOES NOT EXIST"
+    },
+    {
+      "type": "EVMTransaction",
+      "chain": "ETH",
+      "status": "available",
+      "detail": "INVALID"
+    }
+  ]
+}

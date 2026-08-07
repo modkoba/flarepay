@@ -4,7 +4,8 @@
  * Run: npx tsx src/__tests__/unit.ts
  */
 
-import { id as keccakId, Interface } from "ethers";
+import { id as keccakId, Interface, ParamType } from "ethers";
+import { resultToPlain } from "../fdc.js";
 import { feedId, normalizeTxId, pad32Utf8 } from "../encoding.js";
 import { FDC_HUB_ABI, FDC_FEE_CONFIG_ABI, RELAY_ABI, FDC_VERIFICATION_ABI, RESPONSE_TUPLES } from "../abis.js";
 import { COSTON2, getNetwork } from "../networks.js";
@@ -75,6 +76,51 @@ async function main() {
   const verifyIface = new Interface(FDC_VERIFICATION_ABI);
   assert(verifyIface.getFunction("verifyAddressValidity") !== null, "verifyAddressValidity parses");
   assert(verifyIface.getFunction("verifyPayment") !== null, "verifyPayment parses");
+  assert(verifyIface.getFunction("verifyEVMTransaction") !== null, "verifyEVMTransaction parses");
+
+  console.log("\n— EVMTransaction tuple round-trip —");
+  const evmSample = [
+    pad32Utf8("EVMTransaction"),
+    pad32Utf8("testETH"),
+    1418250n,
+    0n,
+    ["0x" + "22".repeat(32), 1n, true, true, [0n, 3n]],
+    [
+      9000000n, 1786000000n, "0x" + "aa".repeat(20), false, "0x" + "bb".repeat(20),
+      123456789n, "0xdeadbeef", 1n,
+      [[0n, "0x" + "cc".repeat(20), ["0x" + "dd".repeat(32)], "0x1234", false]],
+    ],
+  ];
+  const evmEncoded = AbiCoder.defaultAbiCoder().encode([RESPONSE_TUPLES.EVMTransaction], [evmSample]);
+  const evmDecoded = AbiCoder.defaultAbiCoder().decode([RESPONSE_TUPLES.EVMTransaction], evmEncoded)[0];
+  assert(evmDecoded.responseBody.value === 123456789n, "EVMTransaction value survives round-trip");
+  assert(evmDecoded.responseBody.events.length === 1, "EVMTransaction events decode");
+  assert(evmDecoded.responseBody.events[0].topics[0] === "0x" + "dd".repeat(32), "event topics decode");
+
+  // Regression: empty decoded arrays must become [], not {} — a {} here made
+  // ethers re-encoding fail with "invalid array value" (caught live, Sepolia).
+  const evmEmpty = [
+    pad32Utf8("EVMTransaction"), pad32Utf8("testETH"), 1n, 0n,
+    ["0x" + "22".repeat(32), 1n, false, false, []],
+    [1n, 1n, "0x" + "aa".repeat(20), false, "0x" + "bb".repeat(20), 0n, "0x", 1n, []],
+  ];
+  const emptyType = ParamType.from(RESPONSE_TUPLES.EVMTransaction);
+  const emptyDecoded = AbiCoder.defaultAbiCoder().decode(
+    [RESPONSE_TUPLES.EVMTransaction],
+    AbiCoder.defaultAbiCoder().encode([RESPONSE_TUPLES.EVMTransaction], [evmEmpty])
+  )[0];
+  const plain = resultToPlain(emptyDecoded, emptyType) as {
+    requestBody: { logIndices: unknown };
+    responseBody: { events: unknown };
+  };
+  assert(Array.isArray(plain.responseBody.events) && (plain.responseBody.events as unknown[]).length === 0,
+    "empty events → [] not {}");
+  assert(Array.isArray(plain.requestBody.logIndices), "empty logIndices → [] not {}");
+  const reencoded = AbiCoder.defaultAbiCoder().encode(
+    [RESPONSE_TUPLES.EVMTransaction],
+    [Object.values(plain as unknown as Record<string, unknown>).length ? plain : evmEmpty] as never
+  );
+  assert(reencoded.length > 2, "plain object re-encodes without 'invalid array value'");
 
   console.log("\n— response decode round-trip —");
   const coder = AbiCoder.defaultAbiCoder();

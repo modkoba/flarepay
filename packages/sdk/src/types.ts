@@ -2,9 +2,13 @@
  * FlareKit SDK — public result types.
  */
 
+/** Non-EVM chains reachable via Payment / AddressValidity attestations. */
 export type Chain = "XRP" | "BTC" | "DOGE";
 
-export type AttestationTypeName = "AddressValidity" | "Payment";
+/** EVM chains reachable via the EVMTransaction attestation type. */
+export type EvmChain = "ETH";
+
+export type AttestationTypeName = "AddressValidity" | "Payment" | "EVMTransaction";
 
 /** Fully decoded attestation data as consumed by FdcVerification on-chain. */
 export interface AttestationData<TRequestBody, TResponseBody> {
@@ -58,6 +62,35 @@ export interface PaymentResponseBody {
   status: bigint;
 }
 
+export interface EvmTransactionRequestBody {
+  transactionHash: `0x${string}`;
+  requiredConfirmations: bigint;
+  provideInput: boolean;
+  listEvents: boolean;
+  logIndices: bigint[];
+}
+
+export interface EvmTransactionEvent {
+  logIndex: bigint;
+  emitterAddress: `0x${string}`;
+  topics: `0x${string}`[];
+  data: `0x${string}`;
+  removed: boolean;
+}
+
+export interface EvmTransactionResponseBody {
+  blockNumber: bigint;
+  timestamp: bigint;
+  sourceAddress: `0x${string}`;
+  isDeployment: boolean;
+  receivingAddress: `0x${string}`;
+  value: bigint;
+  input: `0x${string}`;
+  /** 1 = success, 0 = failure (EVM receipt status) */
+  status: bigint;
+  events: EvmTransactionEvent[];
+}
+
 export interface VerificationResult<TRequestBody, TResponseBody> {
   /** Result of the on-chain FdcVerification staticCall — never inferred from a receipt. */
   verified: boolean;
@@ -73,6 +106,16 @@ export interface VerificationResult<TRequestBody, TResponseBody> {
 
 export type AddressValidityResult = VerificationResult<AddressValidityRequestBody, AddressValidityResponseBody>;
 export type PaymentResult = VerificationResult<PaymentRequestBody, PaymentResponseBody>;
+export type EvmTransactionResult = VerificationResult<EvmTransactionRequestBody, EvmTransactionResponseBody>;
+
+/** Live availability of one (attestation type, chain) pair on the current network. */
+export interface Capability {
+  type: AttestationTypeName;
+  chain: Chain | EvmChain;
+  /** "available" = verifier route answered (even if it rejected the dummy probe). */
+  status: "available" | "unavailable";
+  detail?: string;
+}
 
 export interface FeeEstimate {
   feeWei: bigint;

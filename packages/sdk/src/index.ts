@@ -13,6 +13,7 @@ export { FdcClient } from "./fdc.js";
 export type {
   EstimateParams,
   VerifyAddressParams,
+  VerifyEvmTransactionParams,
   VerifyOptions,
   VerifyPaymentParams,
 } from "./fdc.js";
@@ -26,7 +27,13 @@ export type {
   AttestationData,
   AttestationProof,
   AttestationTypeName,
+  Capability,
   Chain,
+  EvmChain,
+  EvmTransactionEvent,
+  EvmTransactionRequestBody,
+  EvmTransactionResponseBody,
+  EvmTransactionResult,
   FeedReading,
   FeeEstimate,
   PaymentRequestBody,

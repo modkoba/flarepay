@@ -41,6 +41,23 @@ check.verified;                // proof is valid on-chain
 check.response.isValid;        // the address itself is valid (false is a *proven* negative)
 ```
 
+### EVM transactions (Sepolia)
+
+```ts
+const evm = await kit.fdc.verifyEvmTransaction({ chain: "ETH", txHash: "0x…" });
+evm.response.status;    // 1n = success (EVM receipt status)
+evm.response.events;    // decoded logs: emitter, topics, data
+evm.response.input;     // calldata (provideInput defaults true)
+```
+
+### What works right now?
+
+```ts
+const matrix = await kit.fdc.capabilities();  // free — no transactions
+// [{ type: "Payment", chain: "XRP", status: "available" },
+//  { type: "Payment", chain: "BTC", status: "unavailable", detail: "…verifier down…" }, …]
+```
+
 ### Estimate before spending
 
 ```ts
