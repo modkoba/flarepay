@@ -115,6 +115,7 @@ function renderEvent(event: ProgressEvent) {
 
 function renderResult(result: PaymentResult, totalSeconds: number, mode: "live" | "replay") {
   clearInterval(clockTimer);
+  progressTitle.textContent = mode === "live" ? "Complete — verified on Coston2" : "Replay complete";
   resultCard.classList.remove("hidden");
   verdict.className = `verdict ${result.verified ? "ok" : "bad"}`;
   verdict.textContent = result.verified

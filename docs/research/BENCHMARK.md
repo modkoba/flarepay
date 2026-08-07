@@ -1,145 +1,70 @@
-# FlareKit — Benchmark: Manual FDC Flow vs. SDK Flow
+# FlareKit — Benchmark: Manual FDC Flow vs. SDK
 
-## Methodology
+All numbers below are **measured on Coston2**, not estimated. Manual-flow numbers are from
+the Phase 0 live test (2026-07-25, `phase0-research/`); SDK numbers are from the live
+integration runs (2026-08-07, `packages/sdk/integration/out/*.json`, tx hashes included).
 
-All measurements are from running the FDC payment verification flow manually on Coston2 testnet.
-SDK flow numbers are estimates based on the planned API design.
+## The honest framing
 
----
+End-to-end wall clock is dominated by **protocol time** — the FDC voting round must
+finalize (~90-180s) no matter what tooling you use. What an SDK removes is **developer
+time**: the code, contracts, APIs, and encoding pitfalls between you and your first
+successful verification. We measure the two separately.
 
-## Manual FDC Flow
+## Protocol time (unavoidable, measured)
 
-### Setup
-
-| Step | Command / Action | Time | Pain? |
-|---|---|---|---|
-| 1 | Install Node.js + dependencies | | |
-| 2 | Install ethers.js | | |
-| 3 | Create project directory | | |
-| 4 | Configure Coston2 RPC | | |
-| 5 | Set up MetaMask + Coston2 | | |
-| 6 | Fund wallet from faucet | | |
-| 7 | Find contract addresses | | |
-| 8 | Copy ABIs | | |
-| **Setup Total** | **__ commands, __ files** | **__ min** | |
-
-### Verification (One Payment)
-
-| Step | Commands | Code Lines | Time | Pain? |
+| Run | Attestation | Round wait | Total | Evidence |
 |---|---|---|---|---|
-| 1. ABI encode attestation request | | | | |
-| 2. Read fee from FeeConfiguration | | | | |
-| 3. Estimate gas | | | | |
-| 4. Submit attestation request (FdcHub) | | | | |
-| 5. Pay fee in separate tx | | | | |
-| 6. Record request ID + block timestamp | | | | |
-| 7. Calculate voting round | | | | |
-| 8. Wait for voting round to complete | | | | |
-| 9. Query DA Layer for response | | | | |
-| 10. Fetch Merkle proof | | | | |
-| 11. Submit proof to FdcVerification | | | | |
-| 12. Decode verification response | | | | |
-| **Verification Total** | **__** | **__** | **__ min** | |
+| Phase 0 manual | XRP AddressValidity | 79.9s | ~108.6s | tx `0xa2a8ae…1c70f6`, round 1,406,877 |
+| SDK `verifyAddress` | XRP AddressValidity | ~124s | 132.6s | tx `0x87d6259d…d39799`, round 1,418,002 |
+| SDK `verifyPayment` | XRP Payment (real XRPL testnet tx) | ~65s | 77.1s | tx `0x9506faa4…f98e12`, round 1,418,242 |
 
-### Grand Total
+Round-wait variance (65-124s) is protocol scheduling, not tooling. FlareKit surfaces it
+truthfully via progress events with ETAs instead of a fake spinner.
 
-| Metric | Manual |
-|---|---|
-| Commands (setup + verify) | __ |
-| Files edited | __ |
-| Code lines written | __ |
-| Total time | __ min |
-| Conceptual understanding required | High |
+## Developer time (what FlareKit removes)
 
----
-
-## FlareKit SDK Flow (Planned)
-
-### Setup
-
-| Step | Command | Time |
+| | Manual (Phase 0, actually done) | FlareKit (measured) |
 |---|---|---|
-| 1 | `npm install @flarekit/sdk` | |
-| 2 | `import { FlareKit } from "@flarekit/sdk"` | |
-| 3 | `const kit = new FlareKit({ network: "coston2" })` | |
-| **Setup Total** | **1 command** | **__ min** |
+| Working code to write | ~340 lines (`run-phase0-test.ts`) | **5 lines** |
+| Contracts to learn | 6 (Registry, FdcHub, FeeConfig, FSM, Relay, FdcVerification) | **0** |
+| REST APIs to learn | 2 (verifier, DA layer) + retry behavior | **0** |
+| Encoding rules to discover | right-pad-32 ids, MIC via prepareRequest, drops-string amounts | **0** |
+| Polling loops to write | 2 (Relay finalization, DA layer) | **0** |
+| Wall clock to first working verification | ~2 days of research + iteration | **< 5 min** from `pnpm add` |
+| Correctness achieved | **5/6 steps** — on-chain verify silently returned empty data (hand-built ABI signature was wrong) | **6/6**, `verified: true` from `staticCall` |
 
-### Verification (One Payment)
+The last row is the real benchmark. The Phase 0 manual attempt was careful, measured
+work — and its final verification step was *still* wrong (a hand-written function
+signature produced a bad selector, the contract's fallback returned empty data, and
+nothing failed loudly). A later hand-written SDK attempt (v1, preserved in git history)
+hardcoded three selectors and got **all three** wrong. Hand-rolling FDC integration
+doesn't just cost time; it fails silently. FlareKit derives every selector from published
+ABIs and asserts them in CI.
 
-| Step | Code | Time |
-|---|---|---|
-| 1 | `await kit.payment.verify({ txHash, currency: "BTC" })` | |
-| **Verification Total** | **1 call** | **__ sec** |
+## The 5 lines
 
-### Grand Total
+```ts
+import { FlareKit } from "@flarekit/sdk";
 
-| Metric | FlareKit |
-|---|---|
-| Commands (setup + verify) | __ |
-| Files edited | __ |
-| Code lines written | __ |
-| Total time | __ min |
-| Conceptual understanding required | Low |
+const kit = new FlareKit({ network: "coston2", privateKey });
+const result = await kit.fdc.verifyPayment({ chain: "XRP", txId });
+console.log(result.verified, result.response.receivedAmount);
+```
 
----
+## Bonus: protocols that took zero extra setup
 
-## Comparison
+Because the kit wraps all enshrined protocols, these came free (measured live):
 
-| Metric | Manual | FlareKit | Improvement |
-|---|---|---|---|
-| Setup commands | | | |
-| Verification calls | | | |
-| Total commands | | | |
-| Setup time | | | |
-| Verification time | | | |
-| Total time | | | |
-| Code lines | | | |
-| Conceptual load | | | |
+- `kit.ftso.read("BTC/USD")` — live FTSOv2 price, one call, no wallet
+- `kit.random.get()` — protocol secure random, one call, no wallet
+- `kit.fdc.estimate(...)` — fee (1000 wei measured) + honest ETA before spending anything
 
----
+## Reproduce
 
-## Measurement Log
-
-_(Record actual measurements here during Phase 0 research)_
-
-### Run 1: BTC Payment Verification on Coston2
-
-| Step | Start | End | Duration | Notes |
-|---|---|---|---|---|
-| Setup | | | | |
-| ABI encoding | | | | |
-| Fee estimation | | | | |
-| Submit request | | | | |
-| Pay fee | | | | |
-| Wait for round | | | | |
-| Retrieve proof | | | | |
-| Verify proof | | | | |
-| Decode result | | | | |
-| **Total** | | | | |
-
-- **BTC tx hash used:**
-- **Request ID:**
-- **Block number:**
-- **Voting round:**
-- **Result:**
-
-### Run 2: BTC Payment Verification (repeat for consistency)
-
-| Step | Start | End | Duration | Notes |
-|---|---|---|---|---|
-| Setup | | | | Already done |
-| ABI encoding | | | | |
-| Fee estimation | | | | |
-| Submit request | | | | |
-| Pay fee | | | | |
-| Wait for round | | | | |
-| Retrieve proof | | | | |
-| Verify proof | | | | |
-| Decode result | | | | |
-| **Total** | | | | |
-
-- **BTC tx hash used:**
-- **Request ID:**
-- **Block number:**
-- **Voting round:**
-- **Result:**
+```bash
+cd packages/sdk
+npx tsx integration/read-only.ts        # no wallet needed
+npx tsx integration/verify-address.ts   # needs funded Coston2 key
+npx tsx integration/verify-payment.ts   # needs funded Coston2 key
+```
