@@ -136,17 +136,35 @@ async function validateXrplAddress(address: string): Promise<boolean> {
   }
 }
 
-/** Tiny per-IP token bucket for auth-adjacent and charge-creating routes. */
+/**
+ * Per-IP token buckets, one per traffic class.
+ *
+ * Classes are separate on purpose: the dashboard polls /api/admin/overview
+ * every 3s (20 req/min on its own), so read traffic needs plenty of headroom
+ * while signups stay tightly capped. A single shared bucket conflated the two
+ * and 429'd the dashboard.
+ */
+const LIMITS = {
+  auth: { capacity: 6, windowMs: 10 * 60_000 }, // signups: 6 per 10 min
+  write: { capacity: 30, windowMs: 60_000 }, // charges, payouts, keys
+  read: { capacity: 240, windowMs: 60_000 }, // dashboard polling + checkout
+} as const;
+
 const buckets = new Map<string, { tokens: number; refilled: number }>();
-function rateLimited(req: IncomingMessage, cost = 1, capacity = 20): boolean {
-  const ip = req.socket.remoteAddress ?? "?";
+
+function rateLimited(req: IncomingMessage, kind: keyof typeof LIMITS = "read", cost = 1): boolean {
+  const { capacity, windowMs } = LIMITS[kind];
+  const key = `${kind}:${req.socket.remoteAddress ?? "?"}`;
   const now = Date.now();
-  const bucket = buckets.get(ip) ?? { tokens: capacity, refilled: now };
-  bucket.tokens = Math.min(capacity, bucket.tokens + ((now - bucket.refilled) / 60_000) * capacity);
+  const bucket = buckets.get(key) ?? { tokens: capacity, refilled: now };
+  bucket.tokens = Math.min(capacity, bucket.tokens + ((now - bucket.refilled) / windowMs) * capacity);
   bucket.refilled = now;
-  if (bucket.tokens < cost) return true;
+  if (bucket.tokens < cost) {
+    buckets.set(key, bucket);
+    return true;
+  }
   bucket.tokens -= cost;
-  buckets.set(ip, bucket);
+  buckets.set(key, bucket);
   return false;
 }
 
@@ -167,7 +185,7 @@ const server = createServer(async (req, res) => {
 
     // ── Public: checkout API ────────────────────────────────────────
     if (route === "POST /api/charges") {
-      if (rateLimited(req, 4)) return send(res, 429, { error: "slow down" });
+      if (rateLimited(req, "write")) return send(res, 429, { error: "slow down" });
       const body = await readBody(req);
       const usdCents = Number(body.usdCents ?? 200);
       const metadata = String(body.metadata ?? PROTECTED_RESOURCE.title);
@@ -184,7 +202,7 @@ const server = createServer(async (req, res) => {
 
     /** Demo convenience: pay a charge from our funded testnet payer wallet. */
     if (route.startsWith("POST /api/charges/") && url.pathname.endsWith("/demo-pay")) {
-      if (rateLimited(req, 4)) return send(res, 429, { error: "slow down" });
+      if (rateLimited(req, "write")) return send(res, 429, { error: "slow down" });
       const id = url.pathname.split("/")[3];
       const charge = flarePay.get(id);
       if (!charge) return send(res, 404, { error: "unknown charge" });
@@ -241,6 +259,34 @@ const server = createServer(async (req, res) => {
       });
     }
 
+    // ── Public: signup ──────────────────────────────────────────────
+    /**
+     * Server-side signup: creates the account already confirmed, then the
+     * browser signs in with the password. We own this flow deliberately —
+     * Supabase's built-in mailer is rate-limited to a few messages per hour,
+     * which would gate real merchants (and judges) behind an inbox. Email
+     * verification is explicitly out of scope for the testnet product
+     * (PRD v4 §4); adding SMTP later re-enables the standard flow.
+     */
+    if (route === "POST /api/auth/signup") {
+      if (!PLATFORM) return send(res, 400, { error: "local mode has no accounts" });
+      if (rateLimited(req, "auth")) return send(res, 429, { error: "too many signups — slow down" });
+      const body = await readBody(req);
+      const email = String(body.email ?? "").trim().toLowerCase();
+      const password = String(body.password ?? "");
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return send(res, 400, { error: "valid email required" });
+      if (password.length < 8) return send(res, 400, { error: "password must be at least 8 characters" });
+
+      const { error } = await db!.supabase.auth.admin.createUser({ email, password, email_confirm: true });
+      if (error) {
+        const exists = /already|registered|exists/i.test(error.message);
+        return send(res, exists ? 409 : 400, {
+          error: exists ? "that email already has an account — sign in instead" : error.message,
+        });
+      }
+      return send(res, 201, { ok: true, email });
+    }
+
     // ── Public: telemetry ───────────────────────────────────────────
     if (route === "GET /api/rate") return send(res, 200, await flarePay.rate());
 
@@ -255,7 +301,8 @@ const server = createServer(async (req, res) => {
 
     // ── Authenticated: account + admin ──────────────────────────────
     if (url.pathname.startsWith("/api/me") || url.pathname.startsWith("/api/admin/")) {
-      if (rateLimited(req)) return send(res, 429, { error: "slow down" });
+      const writeRoute = req.method !== "GET";
+      if (rateLimited(req, writeRoute ? "write" : "read")) return send(res, 429, { error: "slow down" });
       const account = await authenticate(req);
       if (!account) return send(res, 401, { error: "sign in (dashboard) or pass a valid fpk_ API key" });
 

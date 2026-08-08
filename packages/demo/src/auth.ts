@@ -2,6 +2,7 @@
 
 import { supabase } from "./supabase.js";
 
+const API = import.meta.env.VITE_PAY_API ?? "/pay-api";
 const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
 let mode: "login" | "signup" = "login";
 
@@ -37,10 +38,19 @@ $("#submitBtn").addEventListener("click", async () => {
   btn.disabled = true;
   $("#authErr").textContent = "";
   try {
-    const { error } =
-      mode === "login"
-        ? await supabase.auth.signInWithPassword({ email, password })
-        : await supabase.auth.signUp({ email, password });
+    if (mode === "signup") {
+      // Server-side signup (auto-confirmed) — see the note on POST
+      // /api/auth/signup: Supabase's built-in mailer is rate-limited, so we
+      // don't gate merchants behind a confirmation email on testnet.
+      const res = await fetch(`${API}/api/auth/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = (await res.json()) as { error?: string };
+      if (!res.ok) throw new Error(data.error ?? `signup failed (${res.status})`);
+    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
     location.href = "/dashboard.html";
   } catch (err) {
