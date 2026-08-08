@@ -66,6 +66,8 @@ body {
 }
 .hero3d-status b { color: var(--ok); font-weight: 700; }
 .hero3d-hint { opacity: 0.7; }
+.dash-link { color: var(--accent); text-decoration: none; }
+.dash-link:hover { text-decoration: underline; }
 
 /* hero (legacy header styles reused inside hero3d) */
 .hero { text-align: center; margin-bottom: 30px; }

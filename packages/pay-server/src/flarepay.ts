@@ -1,15 +1,22 @@
 /**
- * FlarePay core: charges, XRPL watching, FDC settlement.
+ * FlarePay core: charges, XRPL watching, FDC settlement — durable edition.
  *
  * The server never holds funds. It only (a) opens charges on the escrow,
  * (b) watches the merchant's XRPL address for a matching destination tag, and
  * (c) relays an FDC proof so the charge settles on Flare. Anyone can do (c) —
  * the proof carries the authority, not the relayer.
+ *
+ * Product guarantees on top of the demo loop:
+ *  - every state change persists (restart-safe),
+ *  - a crash mid-attestation resumes via kit.fdc.resume() — the fee already
+ *    paid is not paid again,
+ *  - merchants get HMAC-signed webhooks on settlement.
  */
 
 import { Contract, JsonRpcProvider, Wallet, keccak256, toUtf8Bytes } from "ethers";
-import { FlareKit, type ProgressEvent } from "@flarekit/sdk";
+import { FlareKit, type ProgressEvent, type ResumeHandle } from "@flarekit/sdk";
 import { Client } from "xrpl";
+import { Store } from "./store.js";
 
 export type ChargeState =
   | "awaiting_payment"
@@ -17,7 +24,8 @@ export type ChargeState =
   | "attesting"
   | "settling"
   | "paid"
-  | "failed";
+  | "failed"
+  | "expired";
 
 export interface ChargeView {
   id: string;
@@ -31,13 +39,14 @@ export interface ChargeView {
   paymentUri: string;
   metadata: string;
   expiresAt: number;
+  createdAt: number;
   createdTx: string;
-  /** Populated as the flow advances. */
   xrplTxHash?: string;
+  payerAddress?: string;
   votingRound?: number;
   settleTx?: string;
+  settledAt?: number;
   error?: string;
-  /** Human-readable step log for the checkout UI. */
   steps: { step: string; at: number; etaSeconds?: number; detail?: string }[];
 }
 
@@ -45,16 +54,21 @@ export interface FlarePayConfig {
   rpcUrl: string;
   privateKey: string;
   escrowAddress: string;
-  /**
-   * ABI from the compiled artifact — never hand-written. A hand-typed
-   * human-readable ABI cost us a live settlement failure ("cannot use object
-   * value with unnamed components"): one stray paren turned the proof struct
-   * into a tuple-wrapping-a-tuple.
-   */
   escrowAbi: readonly unknown[];
   merchantXrplAddress: string;
   xrplWss: string;
   explorerUrl: string;
+}
+
+export interface Stats {
+  settledUsdCents: number;
+  settledDrops: string;
+  paid: number;
+  pending: number;
+  failed: number;
+  total: number;
+  avgSettleSeconds: number | null;
+  lastRound: number | null;
 }
 
 export class FlarePay {
@@ -63,18 +77,52 @@ export class FlarePay {
   private readonly escrow: Contract;
   private readonly kit: FlareKit;
   private readonly charges = new Map<string, ChargeView>();
-  /** Verified proofs, kept so a failed settlement can retry without re-attesting. */
-  private readonly proofs = new Map<string, unknown>();
 
-  constructor(private readonly config: FlarePayConfig) {
+  constructor(
+    private readonly config: FlarePayConfig,
+    private readonly store: Store
+  ) {
     this.provider = new JsonRpcProvider(config.rpcUrl);
     this.wallet = new Wallet(config.privateKey, this.provider);
     this.escrow = new Contract(config.escrowAddress, config.escrowAbi as never, this.wallet);
     this.kit = new FlareKit({ network: "coston2", privateKey: config.privateKey });
+
+    for (const [id, charge] of Object.entries(this.store.loadCharges<ChargeView>())) {
+      this.charges.set(id, charge);
+    }
   }
 
+  // ─── queries ──────────────────────────────────────────────────────
   list(): ChargeView[] {
     return [...this.charges.values()].sort((a, b) => Number(b.id) - Number(a.id));
+  }
+
+  get(id: string): ChargeView | undefined {
+    return this.charges.get(id);
+  }
+
+  stats(): Stats {
+    const all = this.list();
+    const paid = all.filter((c) => c.state === "paid");
+    const settleTimes = paid
+      .filter((c) => c.settledAt && c.xrplTxHash)
+      .map((c) => {
+        const seen = c.steps.find((s) => s.step === "payment_seen")?.at ?? c.createdAt;
+        return (c.settledAt! - seen) / 1000;
+      })
+      .filter((s) => s > 0 && s < 3600);
+    return {
+      settledUsdCents: paid.reduce((sum, c) => sum + c.usdCents, 0),
+      settledDrops: paid.reduce((sum, c) => sum + BigInt(c.drops), 0n).toString(),
+      paid: paid.length,
+      pending: all.filter((c) => ["awaiting_payment", "payment_seen", "attesting", "settling"].includes(c.state)).length,
+      failed: all.filter((c) => c.state === "failed").length,
+      total: all.length,
+      avgSettleSeconds: settleTimes.length
+        ? Math.round(settleTimes.reduce((a, b) => a + b, 0) / settleTimes.length)
+        : null,
+      lastRound: paid.reduce<number | null>((max, c) => Math.max(max ?? 0, c.votingRound ?? 0) || max, null),
+    };
   }
 
   private rateCache?: { price: number; timestamp: number; fetchedAt: number };
@@ -88,9 +136,7 @@ export class FlarePay {
     return { symbol: "XRP/USD", price: this.rateCache.price, timestamp: this.rateCache.timestamp };
   }
 
-  get(id: string): ChargeView | undefined {
-    return this.charges.get(id);
-  }
+  // ─── lifecycle ────────────────────────────────────────────────────
 
   /** Open a charge priced in USD; FTSO pins the XRP amount on-chain. */
   async createCharge(usdCents: number, metadata: string): Promise<ChargeView> {
@@ -117,57 +163,107 @@ export class FlarePay {
       paymentUri: `${this.config.merchantXrplAddress}?amount=${Number(drops) / 1e6}&dt=${destinationTag}`,
       metadata,
       expiresAt: Number(event.args.expiresAt),
+      createdAt: Date.now(),
       createdTx: receipt.hash,
       steps: [{ step: "charge_created", at: Date.now() }],
     };
     this.charges.set(charge.id, charge);
+    this.store.saveCharge(charge.id, charge);
+    this.store.addEvent("charge.created", charge.id, `$${(usdCents / 100).toFixed(2)} · tag ${destinationTag}`);
     return charge;
   }
 
   /**
-   * Watch the merchant's XRPL address for a payment carrying this charge's tag,
-   * then attest and settle. Returns when the charge reaches a terminal state.
+   * Drive a charge to a terminal state: watch XRPL → attest → settle.
+   * Restart-safe: picks up from whatever was persisted (payment hash,
+   * attestation handle, or a finished proof).
    */
-  async awaitAndSettle(chargeId: string, timeoutMs = 15 * 60_000): Promise<ChargeView> {
+  async awaitAndSettle(chargeId: string, timeoutMs = 45 * 60_000): Promise<ChargeView> {
     const charge = this.charges.get(chargeId);
     if (!charge) throw new Error(`unknown charge ${chargeId}`);
 
     try {
-      const xrplTxHash = charge.xrplTxHash ?? (await this.watchForPayment(charge, timeoutMs));
-      charge.xrplTxHash = xrplTxHash;
-      this.step(charge, "payment_seen", { detail: xrplTxHash });
-      charge.state = "payment_seen";
+      if (!charge.xrplTxHash) {
+        const xrplTxHash = await this.watchForPayment(charge, timeoutMs);
+        charge.xrplTxHash = xrplTxHash;
+        this.transition(charge, "payment_seen", xrplTxHash);
+      }
 
-      // Proofs are valid forever, so a retry after a settlement failure reuses
-      // the cached one instead of paying for another attestation round.
-      let proof = this.proofs.get(chargeId);
+      let proof = this.store.loadProof(chargeId);
       if (!proof) {
-        charge.state = "attesting";
-        const verification = await this.kit.fdc.verifyXrpPayment(
-          { txId: xrplTxHash, proofOwner: this.config.escrowAddress },
-          { onProgress: (event) => this.onAttestationProgress(charge, event) }
-        );
-        if (!verification.verified) throw new Error("FDC verification returned false");
-        charge.votingRound = verification.votingRoundId;
-        proof = verification.proof;
-        this.proofs.set(chargeId, proof);
+        proof = await this.attestOrResume(charge);
+        this.store.saveProof(chargeId, proof);
       } else {
         this.step(charge, "proof-reused");
       }
 
-      charge.state = "settling";
-      this.step(charge, "settling");
+      this.transition(charge, "settling");
       const settleTx = await this.send("settle", [BigInt(chargeId), proof]);
       const settleReceipt = await settleTx.wait();
       charge.settleTx = settleReceipt.hash;
-      charge.state = "paid";
-      this.step(charge, "paid", { detail: settleReceipt.hash });
+      charge.settledAt = Date.now();
+      const settled = this.parseEvent(settleReceipt.logs, "ChargeSettled");
+      if (settled) charge.payerAddress = settled.args.payerAddress;
+      this.transition(charge, "paid", settleReceipt.hash);
+      void this.deliverWebhook("charge.paid", charge);
     } catch (err) {
-      charge.state = "failed";
       charge.error = (err as Error).message;
-      this.step(charge, "failed", { detail: charge.error });
+      this.transition(charge, "failed", charge.error.slice(0, 140));
+      void this.deliverWebhook("charge.failed", charge);
     }
     return charge;
+  }
+
+  /** Re-arm every non-terminal charge after a restart. */
+  recover(): number {
+    let recovered = 0;
+    for (const charge of this.charges.values()) {
+      if (["paid", "failed", "expired"].includes(charge.state)) continue;
+      if (charge.expiresAt * 1000 < Date.now() && !charge.xrplTxHash) {
+        charge.state = "expired";
+        this.store.saveCharge(charge.id, charge);
+        continue;
+      }
+      this.step(charge, "recovered_after_restart");
+      void this.awaitAndSettle(charge.id);
+      recovered++;
+    }
+    if (recovered > 0) this.store.addEvent("server.recovered", undefined, `${recovered} charge(s) re-armed`);
+    return recovered;
+  }
+
+  // ─── internals ────────────────────────────────────────────────────
+
+  /** Attest the payment — resuming a crashed run instead of re-paying when possible. */
+  private async attestOrResume(charge: ChargeView) {
+    const saved = this.store.loadAttestation(charge.id);
+    if (saved?.abiEncodedRequest && saved.votingRoundId) {
+      this.step(charge, "resuming_attestation", { detail: `round ${saved.votingRoundId}` });
+      this.transition(charge, "attesting");
+      const handle: ResumeHandle = {
+        type: "XRPPayment",
+        abiEncodedRequest: saved.abiEncodedRequest as `0x${string}`,
+        votingRoundId: saved.votingRoundId,
+        requestTxHash: (saved.requestTxHash ?? "0x") as `0x${string}`,
+        feePaidWei: BigInt(saved.feePaidWei ?? "0"),
+      };
+      const result = await this.kit.fdc.resume(handle, {
+        onProgress: (event) => this.onAttestationProgress(charge, event),
+      });
+      if (!result.verified) throw new Error("FDC verification returned false");
+      charge.votingRound = handle.votingRoundId;
+      return result.proof;
+    }
+
+    this.transition(charge, "attesting");
+    const verification = await this.kit.fdc.verifyXrpPayment(
+      { txId: charge.xrplTxHash!, proofOwner: this.config.escrowAddress },
+      { onProgress: (event) => this.onAttestationProgress(charge, event) }
+    );
+    if (!verification.verified) throw new Error("FDC verification returned false");
+    charge.votingRound = verification.votingRoundId;
+    this.store.saveCharge(charge.id, charge);
+    return verification.proof;
   }
 
   /** Poll the XRPL for a validated payment to the merchant with this tag. */
@@ -193,6 +289,7 @@ export class FlarePay {
           const hash = (entry as { hash?: string }).hash ?? (tx.hash as string | undefined);
           if (hash && entry.validated !== false) return hash;
         }
+        if (charge.expiresAt * 1000 < Date.now()) throw new Error("charge expired before payment");
         await new Promise((resolve) => setTimeout(resolve, 3000));
       }
       throw new Error(`no payment with tag ${charge.destinationTag} seen within ${timeoutMs / 1000}s`);
@@ -206,10 +303,32 @@ export class FlarePay {
       etaSeconds: event.etaSeconds,
       detail: event.detail ? JSON.stringify(event.detail).slice(0, 120) : undefined,
     });
+    // Persist the pieces of a resume handle as they appear, so a crash between
+    // fee payment and proof retrieval never pays the attestation fee twice.
+    const detail = (event.detail ?? {}) as Record<string, unknown>;
+    if (event.step === "prepared" && detail.abiEncodedRequest) {
+      this.store.saveAttestation(charge.id, { abiEncodedRequest: String(detail.abiEncodedRequest) });
+    }
+    if (event.step === "submitting" && detail.feeWei) {
+      this.store.saveAttestation(charge.id, { feePaidWei: String(detail.feeWei) });
+    }
+    if (event.step === "submitted") {
+      this.store.saveAttestation(charge.id, {
+        votingRoundId: Number(detail.votingRoundId),
+        requestTxHash: String(detail.txHash ?? "0x"),
+      });
+    }
+  }
+
+  private transition(charge: ChargeView, state: ChargeState, detail?: string) {
+    charge.state = state;
+    this.step(charge, state, detail ? { detail } : {});
+    this.store.addEvent(`charge.${state}`, charge.id, detail);
   }
 
   private step(charge: ChargeView, step: string, extra: { etaSeconds?: number; detail?: string } = {}) {
     charge.steps.push({ step, at: Date.now(), ...extra });
+    this.store.saveCharge(charge.id, charge);
   }
 
   private parseEvent(logs: readonly { topics: readonly string[]; data: string }[], name: string) {
@@ -222,6 +341,34 @@ export class FlarePay {
       }
     }
     return null;
+  }
+
+  // ─── webhooks ─────────────────────────────────────────────────────
+  async deliverWebhook(event: string, charge: ChargeView): Promise<void> {
+    const webhook = this.store.webhook;
+    if (!webhook) return;
+    const body = JSON.stringify({ event, at: new Date().toISOString(), charge });
+    const signature = this.store.sign(body);
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const res = await fetch(webhook.url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-FlarePay-Signature": `sha256=${signature}`,
+            "X-FlarePay-Event": event,
+          },
+          body,
+          signal: AbortSignal.timeout(8000),
+        });
+        this.store.addWebhookDelivery({ at: Date.now(), event, chargeId: charge.id, status: res.status, attempt });
+        if (res.ok) return;
+      } catch {
+        this.store.addWebhookDelivery({ at: Date.now(), event, chargeId: charge.id, status: "error", attempt });
+      }
+      await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
+    }
   }
 
   /**

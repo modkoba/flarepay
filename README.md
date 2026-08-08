@@ -81,13 +81,28 @@ third party) can submit them · custody — funds go payer → merchant on the X
 Days faster than card settlement, with no chargebacks — but not point-of-sale coffee. The UI
 shows real ETAs and never fakes progress.
 
+## The product, not a demo
+
+FlarePay runs as a **self-hosted payment server** (the BTCPay model — your server, your
+keys, your money path) with a merchant dashboard at `/dashboard.html`:
+
+- **Durable**: every charge, proof, and attestation handle persists to disk; charges
+  survive restarts.
+- **Crash-safe**: killed mid-attestation, the server *resumes* the same voting round via
+  `kit.fdc.resume()` on boot — the attestation fee is never paid twice. (Tested live:
+  killed at 16s, recovered, settled in round 1,419,632.)
+- **Merchant API**: Bearer-key admin API — create charges, stats, activity feed.
+- **Webhooks**: HMAC-SHA256-signed (`X-FlarePay-Signature`), retried, delivery-logged.
+- **Dashboard**: revenue tiles, per-charge settlement chart, live charge table with
+  checkout/XRPL/Flare links, create-charge with copyable hosted checkout link.
+
 ## Run it
 
 ```bash
 pnpm install
 pnpm --filter @flarekit/contracts build       # compile FlarePayEscrow
-pnpm --filter @flarekit/pay-server start      # charge server on :8787
-pnpm --filter @flarekit/demo dev              # checkout on :5173
+pnpm --filter @flarekit/pay-server start      # server on :8787 (prints your API key)
+pnpm --filter @flarekit/demo dev              # landing + checkout + dashboard on :5173
 ```
 
 Needs a funded Coston2 key (`phase0-research/.secrets.json`) and XRPL testnet wallets

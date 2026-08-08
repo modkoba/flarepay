@@ -16,8 +16,18 @@
 
 - [ ] 2–3 outside testers run the checkout; log results as traction signal
 - [ ] npm publish `@flarekit/sdk`
-- [ ] Webhook signatures + idempotent delivery for merchants
-- [ ] Charge expiry sweeper (expired charges currently just stop being payable)
+
+## Done — product hardening + dashboard (Aug 8) #product
+
+- [x] Durable store: charges/proofs/attestation handles/config persist (JSON, atomic);
+      charge expiry handled on recovery
+- [x] Crash recovery via SDK resume(): killed mid-attestation at 16s, restarted,
+      resumed same round 1,419,632, settled 0xd22f16ee… — fee paid once
+- [x] Admin API (Bearer key, timing-safe) + HMAC-SHA256 webhooks (retries, delivery log,
+      verified against a local sink: sigValid true)
+- [x] Merchant dashboard (/dashboard.html): revenue tiles, settlement chart (dataviz-
+      validated palette), live table, create-charge + hosted checkout link, webhook
+      settings, activity feed — verified live ($3.50 settled, avg 1m 55s)
 
 ## Done — FlarePay product (Aug 8) #product
 

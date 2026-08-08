@@ -1,0 +1,90 @@
+/* FlarePay merchant dashboard */
+
+.dash { max-width: 1180px; margin: 0 auto; padding: 22px 20px 60px; }
+
+.dash-top { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
+.dash-top .brand { text-decoration: none; font-size: 1.05rem; }
+.dash-title { color: var(--muted); font-size: 0.92rem; }
+.spacer { flex: 1; }
+.chip-net { color: var(--ok); border-color: var(--ok); }
+.dash-top a.chip { text-decoration: none; }
+
+/* gate */
+.gate { max-width: 480px; margin: 12vh auto; }
+.err { color: var(--accent); }
+
+/* tiles */
+.tiles { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.4fr; gap: 12px; margin-bottom: 14px; }
+.tile {
+  background: var(--panel); border: 1px solid var(--line); border-radius: 13px;
+  padding: 14px 16px; display: flex; flex-direction: column; gap: 2px;
+}
+.tile-label { color: var(--muted); font-size: 0.76rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.tile-value { font-size: 1.55rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.hero-tile .tile-value { font-size: 2rem; color: var(--accent); }
+.tile-sub { color: var(--muted); font-size: 0.74rem; font-family: var(--mono); }
+.tile-value.ok { color: var(--ok); }
+.tile-value.warn { color: var(--warn); }
+.tile-value.bad { color: var(--accent); }
+
+/* layout */
+.dash-grid { display: grid; grid-template-columns: 1.75fr 1fr; gap: 14px; align-items: start; }
+.dash-col { display: flex; flex-direction: column; gap: 14px; }
+.card-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+
+/* chart */
+.chart-wrap { margin-top: 6px; }
+.chart-wrap svg { display: block; width: 100%; height: auto; }
+.chart-tip {
+  position: fixed; z-index: 30; pointer-events: none;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 10px; font-family: var(--mono); font-size: 0.74rem; color: var(--text);
+  transform: translate(-50%, calc(-100% - 10px));
+}
+
+/* table */
+.table-wrap { overflow-x: auto; margin-top: 4px; }
+.charges-table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+.charges-table th {
+  text-align: left; color: var(--muted); font-weight: 500; font-size: 0.74rem;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  padding: 6px 10px; border-bottom: 1px solid var(--line);
+}
+.charges-table td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.charges-table tr:last-child td { border-bottom: none; }
+.charges-table .mono { font-family: var(--mono); font-size: 0.78rem; }
+.charges-table a { color: var(--accent); text-decoration: none; }
+.charges-table a:hover { text-decoration: underline; }
+
+.state-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 0.76rem; font-weight: 600; border-radius: 999px; padding: 3px 10px;
+}
+.state-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.state-paid { color: var(--ok); background: rgba(47, 191, 113, 0.12); }
+.state-awaiting_payment { color: var(--muted); background: rgba(148, 155, 169, 0.12); }
+.state-payment_seen, .state-attesting, .state-settling { color: var(--warn); background: rgba(230, 165, 32, 0.12); }
+.state-attesting::before, .state-settling::before, .state-payment_seen::before { animation: pulse 1.2s ease-in-out infinite; }
+.state-failed { color: var(--accent); background: var(--accent-soft); }
+.state-expired { color: var(--muted); background: rgba(148, 155, 169, 0.1); }
+
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 1.6s ease-in-out infinite; }
+
+/* side column */
+.stack { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+.grow { flex: 1; }
+.created { background: var(--panel-2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.created .row { margin: 6px 0 0; }
+.created input { font-size: 0.74rem; }
+
+.feed { list-style: none; margin: 10px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+.feed li { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; font-size: 0.8rem; align-items: baseline; }
+.feed .feed-type { font-family: var(--mono); font-size: 0.72rem; color: var(--accent); white-space: nowrap; }
+.feed .feed-detail { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.feed .feed-time { color: var(--muted); font-size: 0.7rem; font-family: var(--mono); }
+
+@media (max-width: 980px) {
+  .tiles { grid-template-columns: 1fr 1fr; }
+  .hero-tile { grid-column: span 2; }
+  .dash-grid { grid-template-columns: 1fr; }
+}

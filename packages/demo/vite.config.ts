@@ -4,6 +4,14 @@ import { defineConfig } from "vite";
 // CORS headers, so the dev server (and any production host) must proxy them.
 // Deployed equivalents: 3 trivial rewrite rules (Vercel/Netlify/CF Pages).
 export default defineConfig({
+  build: {
+    rollupOptions: {
+      input: {
+        main: "index.html",
+        dashboard: "dashboard.html",
+      },
+    },
+  },
   server: {
     proxy: {
       // FlarePay charge server (same-origin in production).
