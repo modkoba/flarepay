@@ -42,8 +42,10 @@ const { privateKey } = readJson(path.join(repoRoot, "phase0-research/.secrets.js
 const xrplWallets = readJson(path.join(repoRoot, "phase0-research/.xrpl-testnet.json"));
 
 const PORT = Number(process.env.PORT ?? 8787);
-const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+// Current Supabase key system: secret key (sb_secret_…) replaces the legacy
+// service_role JWT key (legacy deprecated end of 2026). Both names accepted.
+const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
+const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const PLATFORM = Boolean(SUPABASE_URL && SERVICE_KEY);
 const VERIFIER_URL = "https://fdc-verifiers-testnet.flare.network";
 const VERIFIER_KEY = "00000000-0000-0000-0000-000000000000";

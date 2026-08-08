@@ -34,8 +34,21 @@ export class Db {
   }
 
   // ─── auth ─────────────────────────────────────────────────────────
-  /** Resolve a Supabase access token (from the dashboard) to an account. */
+  /**
+   * Resolve a Supabase access token (from the dashboard) to an account.
+   * getClaims() is the current recommendation (JWKS-verified, cached for
+   * asymmetric signing keys); getUser() remains as fallback for projects on
+   * symmetric keys or older supabase-js behavior.
+   */
   async accountFromToken(accessToken: string): Promise<Account | null> {
+    try {
+      const { data, error } = await this.supabase.auth.getClaims(accessToken);
+      if (!error && data?.claims?.sub) {
+        return { id: data.claims.sub, email: (data.claims.email as string) ?? "" };
+      }
+    } catch {
+      /* fall through to getUser */
+    }
     const { data, error } = await this.supabase.auth.getUser(accessToken);
     if (error || !data.user) return null;
     return { id: data.user.id, email: data.user.email ?? "" };

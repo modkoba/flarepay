@@ -4,6 +4,9 @@ import { defineConfig } from "vite";
 // CORS headers, so the dev server (and any production host) must proxy them.
 // Deployed equivalents: 3 trivial rewrite rules (Vercel/Netlify/CF Pages).
 export default defineConfig({
+  // Accept Supabase's Next.js-style names alongside Vite's, so keys copied
+  // from the Supabase onboarding work without renaming.
+  envPrefix: ["VITE_", "NEXT_PUBLIC_"],
   build: {
     rollupOptions: {
       input: {
