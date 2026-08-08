@@ -88,3 +88,5 @@
   .hero-tile { grid-column: span 2; }
   .dash-grid { grid-template-columns: 1fr; }
 }
+.chip-btn { padding: 4px 12px; font-size: 0.78rem; border-radius: 999px; }
+.mono-wrap { font-family: var(--mono); word-break: break-all; }

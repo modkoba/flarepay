@@ -165,3 +165,40 @@ export class Store {
 function bigintSafe(value: unknown): string {
   return JSON.stringify(value, (_k, v) => (typeof v === "bigint" ? v.toString() : v));
 }
+
+/**
+ * Adapter: presents the single-tenant JSON Store through the multi-tenant
+ * Persistence interface, so the server runs identically without Supabase keys
+ * ("local mode") — every charge just belongs to the implicit "local" account.
+ */
+export class LocalPersistence {
+  constructor(readonly store: Store) {}
+
+  saveCharge(_accountId: string, charge: { id: string }): void {
+    this.store.saveCharge(charge.id, charge);
+  }
+  saveProof(chargeId: string, proof: unknown): void {
+    this.store.saveProof(chargeId, proof);
+  }
+  async loadProof(chargeId: string): Promise<unknown> {
+    return this.store.loadProof(chargeId);
+  }
+  saveAttestation(chargeId: string, patch: AttestationHandle): void {
+    this.store.saveAttestation(chargeId, patch);
+  }
+  async loadAttestation(chargeId: string): Promise<AttestationHandle | undefined> {
+    return this.store.loadAttestation(chargeId);
+  }
+  addEvent(_accountId: string | null, type: string, chargeId?: string, detail?: string): void {
+    this.store.addEvent(type, chargeId, detail);
+  }
+  async getWebhook(_accountId: string): Promise<WebhookConfig | null> {
+    return this.store.webhook ?? null;
+  }
+  sign(_secret: string, body: string): string {
+    return this.store.sign(body);
+  }
+  addWebhookDelivery(_accountId: string, delivery: WebhookDelivery): void {
+    this.store.addWebhookDelivery(delivery);
+  }
+}

@@ -16,7 +16,24 @@
 import { Contract, JsonRpcProvider, Wallet, keccak256, toUtf8Bytes } from "ethers";
 import { FlareKit, type ProgressEvent, type ResumeHandle } from "@flarekit/sdk";
 import { Client } from "xrpl";
-import { Store } from "./store.js";
+import type { AttestationHandle, StoredEvent, WebhookConfig, WebhookDelivery } from "./store.js";
+
+/**
+ * What the engine needs from storage — satisfied by both the Supabase Db
+ * (platform mode) and the legacy JSON Store adapter (keyless local mode).
+ * Loads are async (network); writes are fire-and-forget with internal logging.
+ */
+export interface Persistence {
+  saveCharge(accountId: string, charge: ChargeView): void;
+  saveProof(chargeId: string, proof: unknown): void;
+  loadProof(chargeId: string): Promise<unknown>;
+  saveAttestation(chargeId: string, patch: AttestationHandle): void;
+  loadAttestation(chargeId: string): Promise<AttestationHandle | undefined>;
+  addEvent(accountId: string | null, type: string, chargeId?: string, detail?: string): void;
+  getWebhook(accountId: string): Promise<WebhookConfig | null>;
+  sign(secret: string, body: string): string;
+  addWebhookDelivery(accountId: string, delivery: WebhookDelivery): void;
+}
 
 export type ChargeState =
   | "awaiting_payment"
@@ -77,32 +94,43 @@ export class FlarePay {
   private readonly escrow: Contract;
   private readonly kit: FlareKit;
   private readonly charges = new Map<string, ChargeView>();
+  private readonly owners = new Map<string, string>(); // charge id -> account id
 
   constructor(
     private readonly config: FlarePayConfig,
-    private readonly store: Store
+    private readonly store: Persistence
   ) {
     this.provider = new JsonRpcProvider(config.rpcUrl);
     this.wallet = new Wallet(config.privateKey, this.provider);
     this.escrow = new Contract(config.escrowAddress, config.escrowAbi as never, this.wallet);
     this.kit = new FlareKit({ network: "coston2", privateKey: config.privateKey });
+  }
 
-    for (const [id, charge] of Object.entries(this.store.loadCharges<ChargeView>())) {
-      this.charges.set(id, charge);
+  /** Hydrate the in-memory cache (platform mode passes owners per charge). */
+  hydrate(charges: Iterable<ChargeView & { accountId: string }>): void {
+    for (const charge of charges) {
+      this.charges.set(charge.id, charge);
+      this.owners.set(charge.id, charge.accountId);
     }
   }
 
+  ownerOf(chargeId: string): string {
+    return this.owners.get(chargeId) ?? "local";
+  }
+
   // ─── queries ──────────────────────────────────────────────────────
-  list(): ChargeView[] {
-    return [...this.charges.values()].sort((a, b) => Number(b.id) - Number(a.id));
+  list(accountId?: string): ChargeView[] {
+    return [...this.charges.values()]
+      .filter((c) => !accountId || this.owners.get(c.id) === accountId)
+      .sort((a, b) => Number(b.id) - Number(a.id));
   }
 
   get(id: string): ChargeView | undefined {
     return this.charges.get(id);
   }
 
-  stats(): Stats {
-    const all = this.list();
+  stats(accountId?: string): Stats {
+    const all = this.list(accountId);
     const paid = all.filter((c) => c.state === "paid");
     const settleTimes = paid
       .filter((c) => c.settledAt && c.xrplTxHash)
@@ -139,8 +167,13 @@ export class FlarePay {
   // ─── lifecycle ────────────────────────────────────────────────────
 
   /** Open a charge priced in USD; FTSO pins the XRP amount on-chain. */
-  async createCharge(usdCents: number, metadata: string): Promise<ChargeView> {
-    const merchantHash = keccak256(toUtf8Bytes(this.config.merchantXrplAddress));
+  async createCharge(
+    usdCents: number,
+    metadata: string,
+    owner: { accountId: string; merchantXrplAddress?: string } = { accountId: "local" }
+  ): Promise<ChargeView> {
+    const merchantAddress = owner.merchantXrplAddress ?? this.config.merchantXrplAddress;
+    const merchantHash = keccak256(toUtf8Bytes(merchantAddress));
     const tx = await this.send("createCharge", [merchantHash, BigInt(usdCents), 200, 3600, metadata]);
     const receipt = await tx.wait();
 
@@ -159,8 +192,8 @@ export class FlarePay {
       drops: drops.toString(),
       rate: rate.toFixed(6),
       destinationTag,
-      merchantAddress: this.config.merchantXrplAddress,
-      paymentUri: `${this.config.merchantXrplAddress}?amount=${Number(drops) / 1e6}&dt=${destinationTag}`,
+      merchantAddress,
+      paymentUri: `${merchantAddress}?amount=${Number(drops) / 1e6}&dt=${destinationTag}`,
       metadata,
       expiresAt: Number(event.args.expiresAt),
       createdAt: Date.now(),
@@ -168,8 +201,9 @@ export class FlarePay {
       steps: [{ step: "charge_created", at: Date.now() }],
     };
     this.charges.set(charge.id, charge);
-    this.store.saveCharge(charge.id, charge);
-    this.store.addEvent("charge.created", charge.id, `$${(usdCents / 100).toFixed(2)} · tag ${destinationTag}`);
+    this.owners.set(charge.id, owner.accountId);
+    this.store.saveCharge(owner.accountId, charge);
+    this.store.addEvent(owner.accountId, "charge.created", charge.id, `$${(usdCents / 100).toFixed(2)} · tag ${destinationTag}`);
     return charge;
   }
 
@@ -189,7 +223,7 @@ export class FlarePay {
         this.transition(charge, "payment_seen", xrplTxHash);
       }
 
-      let proof = this.store.loadProof(chargeId);
+      let proof = await this.store.loadProof(chargeId);
       if (!proof) {
         proof = await this.attestOrResume(charge);
         this.store.saveProof(chargeId, proof);
@@ -221,14 +255,14 @@ export class FlarePay {
       if (["paid", "failed", "expired"].includes(charge.state)) continue;
       if (charge.expiresAt * 1000 < Date.now() && !charge.xrplTxHash) {
         charge.state = "expired";
-        this.store.saveCharge(charge.id, charge);
+        this.store.saveCharge(this.ownerOf(charge.id), charge);
         continue;
       }
       this.step(charge, "recovered_after_restart");
       void this.awaitAndSettle(charge.id);
       recovered++;
     }
-    if (recovered > 0) this.store.addEvent("server.recovered", undefined, `${recovered} charge(s) re-armed`);
+    if (recovered > 0) this.store.addEvent(null, "server.recovered", undefined, `${recovered} charge(s) re-armed`);
     return recovered;
   }
 
@@ -236,7 +270,7 @@ export class FlarePay {
 
   /** Attest the payment — resuming a crashed run instead of re-paying when possible. */
   private async attestOrResume(charge: ChargeView) {
-    const saved = this.store.loadAttestation(charge.id);
+    const saved = await this.store.loadAttestation(charge.id);
     if (saved?.abiEncodedRequest && saved.votingRoundId) {
       this.step(charge, "resuming_attestation", { detail: `round ${saved.votingRoundId}` });
       this.transition(charge, "attesting");
@@ -262,7 +296,7 @@ export class FlarePay {
     );
     if (!verification.verified) throw new Error("FDC verification returned false");
     charge.votingRound = verification.votingRoundId;
-    this.store.saveCharge(charge.id, charge);
+    this.store.saveCharge(this.ownerOf(charge.id), charge);
     return verification.proof;
   }
 
@@ -323,12 +357,12 @@ export class FlarePay {
   private transition(charge: ChargeView, state: ChargeState, detail?: string) {
     charge.state = state;
     this.step(charge, state, detail ? { detail } : {});
-    this.store.addEvent(`charge.${state}`, charge.id, detail);
+    this.store.addEvent(this.ownerOf(charge.id), `charge.${state}`, charge.id, detail);
   }
 
   private step(charge: ChargeView, step: string, extra: { etaSeconds?: number; detail?: string } = {}) {
     charge.steps.push({ step, at: Date.now(), ...extra });
-    this.store.saveCharge(charge.id, charge);
+    this.store.saveCharge(this.ownerOf(charge.id), charge);
   }
 
   private parseEvent(logs: readonly { topics: readonly string[]; data: string }[], name: string) {
@@ -345,10 +379,11 @@ export class FlarePay {
 
   // ─── webhooks ─────────────────────────────────────────────────────
   async deliverWebhook(event: string, charge: ChargeView): Promise<void> {
-    const webhook = this.store.webhook;
+    const accountId = this.ownerOf(charge.id);
+    const webhook = await this.store.getWebhook(accountId);
     if (!webhook) return;
     const body = JSON.stringify({ event, at: new Date().toISOString(), charge });
-    const signature = this.store.sign(body);
+    const signature = this.store.sign(webhook.secret, body);
 
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
@@ -362,10 +397,10 @@ export class FlarePay {
           body,
           signal: AbortSignal.timeout(8000),
         });
-        this.store.addWebhookDelivery({ at: Date.now(), event, chargeId: charge.id, status: res.status, attempt });
+        this.store.addWebhookDelivery(accountId, { at: Date.now(), event, chargeId: charge.id, status: res.status, attempt });
         if (res.ok) return;
       } catch {
-        this.store.addWebhookDelivery({ at: Date.now(), event, chargeId: charge.id, status: "error", attempt });
+        this.store.addWebhookDelivery(accountId, { at: Date.now(), event, chargeId: charge.id, status: "error", attempt });
       }
       await new Promise((resolve) => setTimeout(resolve, attempt * 2000));
     }

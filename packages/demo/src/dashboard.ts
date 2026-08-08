@@ -8,7 +8,10 @@
  * accessible/table view of the same data.
  */
 
+import { supabase, accessToken } from "./supabase.js";
+
 const API = import.meta.env.VITE_PAY_API ?? "/pay-api";
+const PLATFORM = supabase !== null;
 const EXPLORER = "https://coston2.flarescan.com";
 const XRPL_EXPLORER = "https://testnet.xrpl.org";
 
@@ -48,8 +51,11 @@ const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as
 
 let apiKey = localStorage.getItem("flarepay.apiKey") ?? "";
 let webhookLoaded = false;
+let meLoaded = false;
 
-// ─── auth gate ──────────────────────────────────────────────────────
+// ─── auth ───────────────────────────────────────────────────────────
+// Platform mode: Supabase session (redirect to /auth.html when absent).
+// Local mode: the legacy API-key gate.
 $("#keySave").addEventListener("click", async () => {
   apiKey = ($("#keyInput") as HTMLInputElement).value.trim();
   const ok = await refresh();
@@ -57,16 +63,71 @@ $("#keySave").addEventListener("click", async () => {
   else $("#gateError").textContent = "That key was rejected — check the server logs for the current one.";
 });
 
+$("#signOut").addEventListener("click", async () => {
+  await supabase?.auth.signOut();
+  location.href = "/auth.html";
+});
+
+async function bearer(): Promise<string> {
+  if (PLATFORM) {
+    const token = await accessToken();
+    if (!token) {
+      location.href = "/auth.html";
+      throw new Error("no session");
+    }
+    return token;
+  }
+  return apiKey;
+}
+
 async function admin(pathname: string, init: RequestInit = {}): Promise<Response> {
   return fetch(`${API}${pathname}`, {
     ...init,
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}`, ...init.headers },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${await bearer()}`, ...init.headers },
   });
+}
+
+async function loadMe(): Promise<void> {
+  if (meLoaded) return;
+  const res = await admin("/api/me");
+  if (!res.ok) return;
+  const me = (await res.json()) as {
+    account: { email: string };
+    payout: { value: string; validatedAt: string | null } | null;
+    keys: { label: string; createdAt: string; lastUsedAt: string | null }[];
+    mode: string;
+  };
+  meLoaded = true;
+  $("#accountChip").textContent = me.account.email;
+  $("#accountChip").classList.remove("hidden");
+  if (me.mode === "platform") {
+    $("#signOut").classList.remove("hidden");
+    $("#payoutCard").classList.remove("hidden");
+    $("#keysCard").classList.remove("hidden");
+    if (me.payout) {
+      ($("#payoutAddr") as HTMLInputElement).value = me.payout.value;
+      $("#payoutInfo").textContent = me.payout.validatedAt
+        ? `✓ validated by the Flare verifier`
+        : "validated by Flare's FDC verifier before saving";
+    }
+    renderKeys(me.keys);
+  }
+}
+
+function renderKeys(keys: { label: string; createdAt: string; lastUsedAt: string | null }[]) {
+  $("#keyList").innerHTML = keys.length
+    ? keys
+        .map(
+          (k) => `<li><span class="feed-type">fpk_…</span><span class="feed-detail">${k.label}</span>
+                  <span class="feed-time">${k.lastUsedAt ? "used" : "unused"}</span></li>`
+        )
+        .join("")
+    : `<li><span class="feed-detail">no keys yet — generate one for the API / x402</span></li>`;
 }
 
 // ─── refresh loop ───────────────────────────────────────────────────
 async function refresh(): Promise<boolean> {
-  if (!apiKey) return false;
+  if (!PLATFORM && !apiKey) return false;
   let overview: Overview;
   try {
     const res = await admin("/api/admin/overview");
@@ -78,6 +139,7 @@ async function refresh(): Promise<boolean> {
 
   $("#gate").classList.add("hidden");
   $("#dashMain").classList.remove("hidden");
+  void loadMe();
   ($("#escrowLink") as HTMLAnchorElement).href = `${EXPLORER}/address/${overview.escrow}`;
 
   renderStats(overview);
@@ -259,6 +321,29 @@ $("#webhookTest").addEventListener("click", async () => {
     : (data.error ?? "test failed");
 });
 
+$("#payoutSave").addEventListener("click", async () => {
+  const address = ($("#payoutAddr") as HTMLInputElement).value.trim();
+  $("#payoutInfo").textContent = "asking the Flare verifier…";
+  const res = await admin("/api/me/payout", { method: "PUT", body: JSON.stringify({ address }) });
+  const data = (await res.json()) as { error?: string };
+  $("#payoutInfo").textContent = res.ok ? "✓ validated by the Flare verifier" : `✗ ${data.error}`;
+});
+
+$("#keyCreate").addEventListener("click", async () => {
+  const res = await admin("/api/me/apikey", { method: "POST" });
+  const data = (await res.json()) as { apiKey?: string; error?: string };
+  $("#keyOnce").textContent = data.apiKey ? `${data.apiKey} — shown once, copy now` : (data.error ?? "failed");
+  meLoaded = false;
+  void loadMe();
+});
+
+$("#keyRevoke").addEventListener("click", async () => {
+  await admin("/api/me/apikey", { method: "DELETE" });
+  $("#keyOnce").textContent = "all keys revoked";
+  meLoaded = false;
+  void loadMe();
+});
+
 // ─── utils ──────────────────────────────────────────────────────────
 function timeAgo(at: number): string {
   const s = Math.round((Date.now() - at) / 1000);
@@ -272,5 +357,17 @@ function escapeHtml(text: string): string {
 }
 
 // boot
-if (apiKey) void refresh();
-setInterval(() => void refresh(), 3000);
+void (async () => {
+  if (PLATFORM) {
+    const token = await accessToken();
+    if (!token) {
+      location.href = "/auth.html";
+      return;
+    }
+    $("#gate").classList.add("hidden");
+    await refresh();
+  } else if (apiKey) {
+    await refresh();
+  }
+  setInterval(() => void refresh(), 3000);
+})();

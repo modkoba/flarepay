@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlarePay — sign in</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <style>
+      .auth-shell { min-height: 100svh; display: grid; grid-template-columns: 1fr 1fr; }
+      .auth-art { position: relative; overflow: hidden; }
+      .auth-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+      .auth-art .brand { position: absolute; top: 26px; left: 30px; font-size: 1.1rem; }
+      .auth-panel { display: grid; place-items: center; padding: 30px; }
+      .auth-card { width: 100%; max-width: 360px; }
+      .auth-card h1 { font-size: 1.5rem; margin: 0 0 4px; }
+      .auth-card .hint { margin-bottom: 18px; }
+      .auth-card input { width: 100%; margin-bottom: 10px; }
+      .auth-card button { width: 100%; }
+      .auth-toggle { margin-top: 14px; text-align: center; font-size: 0.86rem; color: var(--muted); }
+      .auth-toggle a { color: var(--accent); text-decoration: none; cursor: pointer; }
+      .auth-err { color: var(--accent); font-size: 0.84rem; min-height: 1.2em; margin: 8px 0 0; }
+      .demo-cred {
+        margin-top: 20px; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 10px;
+        font-size: 0.78rem; color: var(--muted); font-family: var(--mono); cursor: pointer;
+      }
+      .demo-cred:hover { border-color: var(--accent); }
+      @media (max-width: 800px) { .auth-shell { grid-template-columns: 1fr; } .auth-art { display: none; } }
+    </style>
+  </head>
+  <body>
+    <div class="auth-shell">
+      <div class="auth-art">
+        <img src="/report-cover.jpg" alt="A glowing Merkle tree — every payment is a provable leaf" />
+        <a class="brand" href="/">Flare<span>Pay</span></a>
+      </div>
+      <div class="auth-panel">
+        <div class="auth-card">
+          <h1 id="authTitle">Welcome back</h1>
+          <p class="hint" id="authHint">Sign in to your merchant dashboard.</p>
+          <input id="email" type="email" placeholder="email" autocomplete="email" />
+          <input id="password" type="password" placeholder="password" autocomplete="current-password" />
+          <button class="primary" id="submitBtn">Sign in</button>
+          <p class="auth-err" id="authErr"></p>
+          <p class="auth-toggle" id="toggleLine">
+            New merchant? <a id="toggleLink">Create an account</a>
+          </p>
+          <div class="demo-cred" id="demoCred" title="click to fill">
+            demo@flarepay.dev / flarepay-demo-2026 — judge access, one click
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="/src/auth.ts"></script>
+  </body>
+</html>

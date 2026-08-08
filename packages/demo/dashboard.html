@@ -17,6 +17,8 @@
         <span class="spacer"></span>
         <span class="chip chip-net">Coston2</span>
         <a class="chip" id="escrowLink" href="#" target="_blank" rel="noopener">Escrow ↗</a>
+        <span class="chip hidden" id="accountChip"></span>
+        <button class="ghost chip-btn hidden" id="signOut">Sign out</button>
       </header>
 
       <!-- ── API key gate ──────────────────────────────────────── -->
@@ -91,6 +93,29 @@
                     <button class="ghost" id="copyLink">Copy</button>
                   </div>
                 </div>
+              </div>
+            </section>
+
+            <!-- ── payout address ────────────────────────────────── -->
+            <section class="card hidden" id="payoutCard">
+              <h2>Payout address</h2>
+              <div class="stack">
+                <input id="payoutAddr" spellcheck="false" placeholder="XRPL r-address" />
+                <button class="ghost" id="payoutSave">Validate &amp; save</button>
+                <p class="hint" id="payoutInfo">validated by Flare's FDC verifier before saving</p>
+              </div>
+            </section>
+
+            <!-- ── API keys ──────────────────────────────────────── -->
+            <section class="card hidden" id="keysCard">
+              <h2>API keys</h2>
+              <div class="stack">
+                <ul class="feed" id="keyList"></ul>
+                <div class="row">
+                  <button class="ghost grow" id="keyCreate">Generate key</button>
+                  <button class="ghost grow" id="keyRevoke">Revoke all</button>
+                </div>
+                <p class="hint mono-wrap" id="keyOnce"></p>
               </div>
             </section>
 

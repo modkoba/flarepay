@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@flarekit/sdk": "workspace:*",
+    "@supabase/supabase-js": "^2.112.2",
     "ethers": "^6.13.0",
     "three": "^0.185.1"
   },
