@@ -4,7 +4,21 @@
 > Scope source of truth: `docs/planning/PRD.md` (v3, product-first: FlarePay powered by FlareKit).
 > Done = live Coston2 test green per feature (PRD §10), not "code compiles."
 
-## Now — remaining P0 (submission-blocking)
+## Now — PRD v4 P0: platform (accounts + multi-asset) #platform
+
+- [ ] Auth: signup/login/sessions (scrypt + httpOnly HMAC cookies), demo account seed
+- [ ] Multi-tenant store: accounts, per-account API keys/webhooks/payout/charges
+- [ ] Dashboard: login gate, payout settings (XRPL addr validated via verifier
+      prepareResponse — free/instant), API key panel, asset picker
+- [ ] FlarePayEscrowV2: asset-agnostic charges (feedId param), settleXrp + settleUtxo,
+      shared replay guard; deploy + re-prove XRP live (regression gate)
+- [ ] DOGE: xpub → per-charge deposit address, verifier-indexer watcher, settleUtxo;
+      live gate attempted (timebox 1 day — testnet DOGE sourcing is the risk)
+- [ ] Asset menu driven by kit.fdc.capabilities() (BTC shows "auto-enables when
+      Flare's verifier returns")
+- [ ] Checkout: per-asset payment instructions; x402 accepts[] lists enabled assets
+
+## Now — remaining submission tasks
 
 - [ ] Deploy demo + charge server to a public URL (needs your hosting choice)
 - [ ] Push repo to GitHub (needs your go-ahead — public repo)
