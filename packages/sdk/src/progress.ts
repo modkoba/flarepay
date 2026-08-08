@@ -8,6 +8,7 @@
 
 export type ProgressStep =
   | "preparing" // calling the verifier's prepareRequest
+  | "waiting-index" // source tx not yet indexed/confirmed by the verifier
   | "prepared" // got abiEncodedRequest (includes the MIC)
   | "submitting" // sending the fee-paying tx to FdcHub
   | "submitted" // tx confirmed; voting round known

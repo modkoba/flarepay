@@ -48,11 +48,27 @@ const EVM_TRANSACTION_DATA_TUPLE =
   "uint256 value, bytes input, uint8 status, " +
   "(uint32 logIndex, address emitterAddress, bytes32[] topics, bytes data, bool removed)[] events) responseBody)";
 
+/**
+ * XRPPayment (attestation id 0x08) — XRPL-native alternative to Payment.
+ * Surfaces the r-address, first memo, and destination tag directly to consumer
+ * contracts; `proofOwner` binds the proof to the address allowed to use it.
+ * Layout mirrors IXRPPayment.sol from @flarenetwork/flare-periphery-contracts.
+ */
+const XRP_PAYMENT_DATA_TUPLE =
+  "(bytes32 attestationType, bytes32 sourceId, uint64 votingRound, uint64 lowestUsedTimestamp, " +
+  "(bytes32 transactionId, address proofOwner) requestBody, " +
+  "(uint64 blockNumber, uint64 blockTimestamp, string sourceAddress, bytes32 sourceAddressHash, " +
+  "bytes32 receivingAddressHash, bytes32 intendedReceivingAddressHash, int256 spentAmount, " +
+  "int256 intendedSpentAmount, int256 receivedAmount, int256 intendedReceivedAmount, " +
+  "bool hasMemoData, bytes firstMemoData, bool hasDestinationTag, uint256 destinationTag, " +
+  "uint8 status) responseBody)";
+
 export const FDC_VERIFICATION_ABI = [
   "function fdcProtocolId() external view returns (uint8)",
   `function verifyAddressValidity((bytes32[] merkleProof, ${ADDRESS_VALIDITY_DATA_TUPLE} data) _proof) external view returns (bool)`,
   `function verifyPayment((bytes32[] merkleProof, ${PAYMENT_DATA_TUPLE} data) _proof) external view returns (bool)`,
   `function verifyEVMTransaction((bytes32[] merkleProof, ${EVM_TRANSACTION_DATA_TUPLE} data) _proof) external view returns (bool)`,
+  `function verifyXRPPayment((bytes32[] merkleProof, ${XRP_PAYMENT_DATA_TUPLE} data) _proof) external view returns (bool)`,
 ];
 
 /** ABI tuple used to decode the DA layer's response_hex per attestation type. */
@@ -60,6 +76,7 @@ export const RESPONSE_TUPLES: Record<string, string> = {
   AddressValidity: ADDRESS_VALIDITY_DATA_TUPLE,
   Payment: PAYMENT_DATA_TUPLE,
   EVMTransaction: EVM_TRANSACTION_DATA_TUPLE,
+  XRPPayment: XRP_PAYMENT_DATA_TUPLE,
 };
 
 export const FTSO_V2_ABI = [

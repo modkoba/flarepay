@@ -11,7 +11,7 @@
  *   7. decode response_hex, staticCall FdcVerification.verify<Type>(proof)
  */
 
-import { AbiCoder, Contract, ParamType, Result, toUtf8String } from "ethers";
+import { AbiCoder, Contract, ParamType, Result, toUtf8String, ZeroAddress } from "ethers";
 import {
   FDC_FEE_CONFIG_ABI,
   FDC_HUB_ABI,
@@ -42,10 +42,20 @@ import type {
   PaymentResult,
   ResumeHandle,
   VerificationResult,
+  XrpPaymentRequestBody,
+  XrpPaymentResponseBody,
+  XrpPaymentResult,
 } from "./types.js";
 
 export interface VerifyOptions {
   onProgress?: ProgressListener;
+  /**
+   * How long to keep retrying when the verifier says the source transaction
+   * doesn't exist yet. Fresh payments need a moment to be indexed and to reach
+   * the required confirmations (XRPL: 3 ledgers ≈ 12s). Default 90s; set 0 to
+   * fail immediately.
+   */
+  waitForIndexMs?: number;
   /** Relay poll interval (default 10s — rounds are ~90s, finer polling is waste). */
   pollIntervalMs?: number;
   /** Max wait for round finalization (default 300s). */
@@ -77,15 +87,23 @@ export interface VerifyEvmTransactionParams {
   logIndices?: number[];
 }
 
+export interface VerifyXrpPaymentParams {
+  txId: string;
+  /** Address authorized to use the proof — normally the settling contract. */
+  proofOwner?: string;
+}
+
 export type EstimateParams =
   | ({ type: "AddressValidity" } & VerifyAddressParams)
   | ({ type: "Payment" } & VerifyPaymentParams)
-  | ({ type: "EVMTransaction" } & VerifyEvmTransactionParams);
+  | ({ type: "EVMTransaction" } & VerifyEvmTransactionParams)
+  | ({ type: "XRPPayment" } & VerifyXrpPaymentParams);
 
 const VERIFY_FN: Record<AttestationTypeName, string> = {
   AddressValidity: "verifyAddressValidity",
   Payment: "verifyPayment",
   EVMTransaction: "verifyEVMTransaction",
+  XRPPayment: "verifyXRPPayment",
 };
 
 export class FdcClient {
@@ -139,6 +157,27 @@ export class FdcClient {
   }
 
   /**
+   * Verify a native XRP payment using the XRPL-specific attestation type.
+   * Unlike verifyPayment, the proof carries the sender's r-address, the first
+   * memo, and the destination tag — so a consumer contract can match a payment
+   * to an invoice without off-chain helpers.
+   *
+   * `proofOwner` binds the proof to the address allowed to use it (typically
+   * the settling contract); the verifier lower-cases it.
+   */
+  async verifyXrpPayment(
+    params: VerifyXrpPaymentParams,
+    options: VerifyOptions = {}
+  ): Promise<XrpPaymentResult> {
+    return this.run<XrpPaymentRequestBody, XrpPaymentResponseBody>(
+      "XRPPayment",
+      "XRP",
+      xrpPaymentRequestJson(params),
+      options
+    );
+  }
+
+  /**
    * Probe which (attestation type, chain) pairs the network's verifiers serve
    * right now. Costs nothing (no transactions). "available" means the route
    * answered — even a rejection of the dummy probe proves the verifier is up.
@@ -154,6 +193,11 @@ export class FdcClient {
         type: "EVMTransaction" as const,
         chain: "ETH" as const,
         body: { transactionHash: dummyTx, requiredConfirmations: "1", provideInput: true, listEvents: true, logIndices: [] },
+      },
+      {
+        type: "XRPPayment" as const,
+        chain: "XRP" as const,
+        body: { transactionId: dummyTx, proofOwner: ZeroAddress },
       },
     ];
 
@@ -174,17 +218,20 @@ export class FdcClient {
 
   /** Quote the attestation fee and a realistic end-to-end ETA without submitting. */
   async estimate(params: EstimateParams): Promise<FeeEstimate> {
-    const chain = params.chain ?? (params.type === "EVMTransaction" ? "ETH" : "XRP");
+    const chain =
+      params.type === "XRPPayment" ? "XRP" : (params.chain ?? (params.type === "EVMTransaction" ? "ETH" : "XRP"));
     const requestBody =
       params.type === "AddressValidity"
         ? { addressStr: params.address }
         : params.type === "EVMTransaction"
           ? evmRequestJson(params)
-          : {
-              transactionId: normalizeTxId(params.txId),
-              inUtxo: String(params.inUtxo ?? 0),
-              utxo: String(params.utxo ?? 0),
-            };
+          : params.type === "XRPPayment"
+            ? xrpPaymentRequestJson(params)
+            : {
+                transactionId: normalizeTxId(params.txId),
+                inUtxo: String(params.inUtxo ?? 0),
+                utxo: String(params.utxo ?? 0),
+              };
 
     const abiEncodedRequest = await this.prepare(params.type, chain, requestBody);
     const feeWei = await this.getFee(abiEncodedRequest);
@@ -226,7 +273,7 @@ export class FdcClient {
 
     // 1. Canonical request bytes (verifier computes the MIC — never encode locally)
     progress.emit("preparing", { type, chain });
-    const abiEncodedRequest = await this.prepare(type, chain, requestBody);
+    const abiEncodedRequest = await this.prepareWhenIndexed(type, chain, requestBody, options, progress);
     progress.emit("prepared", { abiEncodedRequest });
 
     // 2-3. Fee quote + fee-paying submission
@@ -310,6 +357,41 @@ export class FdcClient {
   }
 
   // ─── Steps ──────────────────────────────────────────────────────
+
+  /**
+   * prepare(), tolerating the window where a just-broadcast source transaction
+   * isn't visible to the verifier's indexer yet.
+   */
+  private async prepareWhenIndexed(
+    type: AttestationTypeName,
+    chain: Chain | EvmChain,
+    requestBody: Record<string, unknown>,
+    options: VerifyOptions,
+    progress: ProgressReporter
+  ): Promise<`0x${string}`> {
+    const budgetMs = options.waitForIndexMs ?? 90_000;
+    const startedAt = Date.now();
+    let attempt = 0;
+
+    for (;;) {
+      try {
+        return await this.prepare(type, chain, requestBody);
+      } catch (err) {
+        const notYetIndexed =
+          err instanceof VerifierRejectedError && /DOES NOT EXIST|NOT CONFIRMED/i.test(err.verifierStatus ?? "");
+        const elapsed = Date.now() - startedAt;
+        if (!notYetIndexed || elapsed >= budgetMs) throw err;
+
+        attempt += 1;
+        progress.emit(
+          "waiting-index",
+          { attempt, verifierStatus: err.verifierStatus },
+          Math.max(1, Math.round((budgetMs - elapsed) / 1000))
+        );
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      }
+    }
+  }
 
   private async prepare(
     type: AttestationTypeName,
@@ -413,10 +495,18 @@ export function resultToPlain(value: unknown, type: ParamType): unknown {
 
 function decodeTypeName(attestationType: `0x${string}`): AttestationTypeName {
   const text = toUtf8String(attestationType).replace(/\0+$/, "");
-  if (text !== "AddressValidity" && text !== "Payment" && text !== "EVMTransaction") {
+  if (!(text in VERIFY_FN)) {
     throw new ProofInvalidError(`unsupported attestation type "${text}"`);
   }
-  return text;
+  return text as AttestationTypeName;
+}
+
+/** Verifier-API JSON body for an XRPPayment request. */
+function xrpPaymentRequestJson(params: VerifyXrpPaymentParams): Record<string, unknown> {
+  return {
+    transactionId: normalizeTxId(params.txId),
+    proofOwner: (params.proofOwner ?? ZeroAddress).toLowerCase(),
+  };
 }
 
 /** Verifier-API JSON body for an EVMTransaction request. */

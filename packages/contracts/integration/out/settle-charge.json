@@ -1,0 +1,15 @@
+{
+  "generatedAt": "2026-08-08T08:55:24.287Z",
+  "escrow": "0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD",
+  "chargeId": "1",
+  "usdCents": "200",
+  "destinationTag": "1000",
+  "quotedDrops": "1932688",
+  "xrplTx": "D644BED38584797B9A4EDCAF3B0B087A95B1107D5EBAD1DA7E927B1B4C040BF8",
+  "payer": "rLHn3f6ovCBtuM7rRruDdausLbrXADtZa8",
+  "merchant": "rBRXicTVkAwqvSt3gNNfYwiEycV7WFK75i",
+  "createTx": "0x260ad6cb7fdccfe31fd5f908043ea5316f0cda0c56b5254a74bcec824d0f9789",
+  "settleTx": "0x8732366ec401a3eaf498eb2a19b7ce267de2d2eb051aae08c408c8e9e1b7a6df",
+  "votingRound": 1419435,
+  "attestationSeconds": 126.765
+}

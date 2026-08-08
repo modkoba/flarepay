@@ -8,7 +8,7 @@ export type Chain = "XRP" | "BTC" | "DOGE";
 /** EVM chains reachable via the EVMTransaction attestation type. */
 export type EvmChain = "ETH";
 
-export type AttestationTypeName = "AddressValidity" | "Payment" | "EVMTransaction";
+export type AttestationTypeName = "AddressValidity" | "Payment" | "EVMTransaction" | "XRPPayment";
 
 /** Fully decoded attestation data as consumed by FdcVerification on-chain. */
 export interface AttestationData<TRequestBody, TResponseBody> {
@@ -62,6 +62,33 @@ export interface PaymentResponseBody {
   status: bigint;
 }
 
+export interface XrpPaymentRequestBody {
+  transactionId: `0x${string}`;
+  /** Address authorized to use this proof (e.g. the settling contract). */
+  proofOwner: `0x${string}`;
+}
+
+export interface XrpPaymentResponseBody {
+  blockNumber: bigint;
+  blockTimestamp: bigint;
+  /** XRPL r-address of the sender, as a plain string. */
+  sourceAddress: string;
+  sourceAddressHash: `0x${string}`;
+  receivingAddressHash: `0x${string}`;
+  intendedReceivingAddressHash: `0x${string}`;
+  spentAmount: bigint;
+  intendedSpentAmount: bigint;
+  /** Drops actually received (1 XRP = 1,000,000 drops). */
+  receivedAmount: bigint;
+  intendedReceivedAmount: bigint;
+  hasMemoData: boolean;
+  firstMemoData: `0x${string}`;
+  hasDestinationTag: boolean;
+  destinationTag: bigint;
+  /** 0 = success, 1 = sender failure, 2 = receiver failure */
+  status: bigint;
+}
+
 export interface EvmTransactionRequestBody {
   transactionHash: `0x${string}`;
   requiredConfirmations: bigint;
@@ -107,6 +134,7 @@ export interface VerificationResult<TRequestBody, TResponseBody> {
 export type AddressValidityResult = VerificationResult<AddressValidityRequestBody, AddressValidityResponseBody>;
 export type PaymentResult = VerificationResult<PaymentRequestBody, PaymentResponseBody>;
 export type EvmTransactionResult = VerificationResult<EvmTransactionRequestBody, EvmTransactionResponseBody>;
+export type XrpPaymentResult = VerificationResult<XrpPaymentRequestBody, XrpPaymentResponseBody>;
 
 /** Live availability of one (attestation type, chain) pair on the current network. */
 export interface Capability {

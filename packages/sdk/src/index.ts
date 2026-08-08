@@ -16,6 +16,7 @@ export type {
   VerifyEvmTransactionParams,
   VerifyOptions,
   VerifyPaymentParams,
+  VerifyXrpPaymentParams,
 } from "./fdc.js";
 export { FtsoClient } from "./ftso.js";
 export { RandomClient } from "./random.js";
@@ -42,6 +43,9 @@ export type {
   RandomReading,
   ResumeHandle,
   VerificationResult,
+  XrpPaymentRequestBody,
+  XrpPaymentResponseBody,
+  XrpPaymentResult,
 } from "./types.js";
 
 export type { ProgressEvent, ProgressListener, ProgressStep } from "./progress.js";

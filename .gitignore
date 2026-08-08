@@ -10,3 +10,5 @@ phase0-research/.secrets.json
 phase0-research/output/
 *.wallet.json
 .claude/settings.local.json
+.xrpl-testnet.json
+phase0-research/.xrpl-testnet.json
