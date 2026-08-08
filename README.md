@@ -1,124 +1,132 @@
-# FlareKit
+# FlarePay
 
-**The TypeScript toolkit for Flare's enshrined protocols.** Verify cross-chain payments
-with FDC, read FTSOv2 price feeds, and get secure randomness — one SDK, one call each,
-typed end-to-end.
+**Accept XRP like Stripe — except nobody holds your money.**
 
-```ts
-import { FlareKit } from "@flarekit/sdk";
+Native XRP payments with programmable settlement on Flare: a merchant charges in USD, the
+payer sends XRP from any XRPL wallet, and the goods are released by a **cryptographic proof
+of that payment verified on-chain**. No custodial processor, no chargebacks, and the payer
+needs no EVM wallet, no gas, and no bridged tokens.
 
-const kit = new FlareKit({ network: "coston2", privateKey });
+Built on **[FlareKit](packages/sdk)** — our open-source TypeScript SDK for Flare's enshrined
+protocols (FDC · FTSOv2 · Secure Random), which powers every step.
 
-// Prove an XRPL payment happened — cryptographically, on Flare
-const result = await kit.fdc.verifyPayment({ chain: "XRP", txId });
-result.verified;                 // true — from the on-chain staticCall
-result.response.receivedAmount;  // 86n (drops), fully typed
+> Flare Summer Signal · Bounty 1 — Interoperable Asset Products · live on Coston2 + XRPL testnet
 
-// Live price + secure random, no wallet needed
-const btc = await kit.ftso.read("BTC/USD");
-const rnd = await kit.random.get();
+## The problem, in one line
+
+XRP settles to anyone on Earth in ~4 seconds for ~$0.0002 — but XRPL has no smart contracts,
+so accepting it means trusting a custodial processor (~1% + custody risk) or receiving a bare
+payment with no escrow, no programmable release, and no verifiable receipt.
+
+## How a payment settles
+
+```
+1. Merchant opens a charge      FlarePayEscrow.createCharge()
+                                $2.00 → 1.932266 XRP at the FTSOv2 rate, pinned on-chain
+                                → destination tag 1006
+
+2. Payer sends native XRP       any XRPL wallet, tag 1006          (~4 s)
+
+3. FDC attests the payment      kit.fdc.verifyXrpPayment()          (~90–180 s, real protocol time)
+                                proof carries tag, amount, sender, memo
+
+4. Escrow settles on Flare      FlarePayEscrow.settle(chargeId, proof)
+                                ✓ proof valid (FdcVerification.verifyXRPPayment)
+                                ✓ destination tag matches the charge
+                                ✓ recipient == merchant's XRPL address hash
+                                ✓ XRPL status == success
+                                ✓ amount ≥ USD price at the pinned FTSO rate (± tolerance)
+                                ✓ one settlement per XRPL transaction (replay guard)
+                                → goods released, proof-backed receipt issued
 ```
 
-## Why
+## Proven live (2026-08-08, Coston2 + XRPL testnet)
 
-FDC — Flare's enshrined cross-chain attestation protocol — is unique and powerful, and
-nearly unusable by hand: 10 steps, 6 contracts, 2 REST APIs, undocumented encoding rules,
-and a ~2-minute voting round in the middle. Our own carefully-measured manual attempt got
-the final verification step silently wrong. FlareKit turns all of it into one function
-call with honest progress reporting. See the measured comparison in
-[docs/research/BENCHMARK.md](docs/research/BENCHMARK.md).
-
-## Proven live on Coston2
-
-Every feature ships only after its live integration test passes (PRD §12). Latest runs
-(2026-08-07, artifacts in `packages/sdk/integration/out/`):
-
-| What | Result | Evidence |
+| Flow | Result | Evidence |
 |---|---|---|
-| `fdc.verifyPayment` — real XRPL testnet payment | `verified: true` in 77.1s | round 1,418,242, tx `0x9506faa4…f98e12` |
-| `fdc.verifyAddress` — XRPL address | `verified: true` in 132.6s, cached proof re-verifies | round 1,418,002, tx `0x87d6259d…d39799` |
-| `fdc.verifyAddress` — DOGE testnet address | `verified: true` in 166.1s | round 1,418,259, tx `0xeeb264e7…dc6a96` |
-| `fdc.verifyEvmTransaction` — real Sepolia tx | `verified: true` in 169.6s, events decoded | round 1,418,264, tx `0x390a1948…11daa9` |
-| `fdc.capabilities` — live verifier support matrix | 5/7 routes up (BTC down upstream) | `integration/out/capabilities.json` |
-| `ftso.read` FLR/BTC/XRP vs USD | live prices | `integration/out/read-only.json` |
-| `random.get` | secure random | 〃 |
-| `fdc.estimate` | 1000 wei + honest ETA | 〃 |
+| **Browser checkout** | $2.00 → 1.932266 XRP @ $1.035054, settled, receipt rendered | charge 7, round 1,419,449, settle `0xad6d0dc1…` |
+| **x402 agent flow** | `402` → pay → proof → `200` + resource, 160 s | charge 5, round 1,419,445, settle `0x856eef3e…` |
+| **Contract acceptance test** | createCharge → pay → settle → `isPaid` true, replay rejected | [settle-charge.json](packages/contracts/integration/out/settle-charge.json) |
+| `fdc.verifyXrpPayment` | `verified: true`, tag/amount/memo/sender all intact | 123.9 s, round 1,419,428 |
 
-## Quickstart
+**FlarePayEscrow on Coston2:** [`0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD`](https://coston2.flarescan.com/address/0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD)
+
+## Same rail, for AI agents (x402)
+
+Flare's own x402 guide is blocked — verbatim: *"FXRP will be supported once it implements the
+required EIP-3009 standard."* FlarePay settles a **proof of a native XRP payment** instead of a
+token authorization, so it works today and the agent needs only an XRPL wallet:
+
+```bash
+$ curl https://flarepay.demo/api/report
+HTTP/1.1 402 Payment Required
+{ "accepts": [{ "scheme": "xrpl-payment", "payTo": "rBRX…K75i", "destinationTag": 1002,
+                "amount": "1.93", "asset": "XRP", "settlement": "flare-fdc-xrppayment" }] }
+
+$ curl -H "X-Payment: 5" https://flarepay.demo/api/report
+HTTP/1.1 200 OK
+{ "title": "XRP Market Intelligence…",
+  "settlement": { "votingRound": 1419445, "settleTx": "0x856eef3e…" } }
+```
+
+## Trust model
+
+**Trustless:** payment existence, amount and tag (FDC proof, verified on-chain) · USD→XRP
+conversion (FTSOv2, pinned at charge time) · release conditions (contract code, replay-guarded).
+
+**Not trusted:** the FlarePay server — it only *relays* proofs, and anyone (payer, merchant, a
+third party) can submit them · custody — funds go payer → merchant on the XRPL and never touch us.
+
+**Honest about latency:** settlement finality is one FDC voting round (~90–180 s, measured).
+Days faster than card settlement, with no chargebacks — but not point-of-sale coffee. The UI
+shows real ETAs and never fakes progress.
+
+## Run it
 
 ```bash
 pnpm install
-pnpm build
-cd packages/sdk
-
-# read-only (no wallet): prices, random, fee estimate
-npx tsx integration/read-only.ts
-
-# full FDC lifecycle (needs a funded Coston2 key — faucet.flare.network)
-npx tsx integration/verify-payment.ts
+pnpm --filter @flarekit/contracts build       # compile FlarePayEscrow
+pnpm --filter @flarekit/pay-server start      # charge server on :8787
+pnpm --filter @flarekit/demo dev              # checkout on :5173
 ```
 
-## FlarePay demo
-
-A checkout that accepts XRPL testnet payments and settles them with FDC proofs —
-built entirely on public SDK APIs, with an honest ~2-minute progress UI (the voting
-round is real protocol time; the demo never fakes it) plus an instant replay of a
-recorded live run.
-
-```bash
-# optional, enables live mode: packages/demo/.env.local
-#   VITE_DEMO_PRIVATE_KEY=0x… (funded Coston2 key)
-pnpm --filter @flarekit/demo dev
-```
-
-## Design principles
-
-1. **One call per job** — protocol hidden, progress exposed, escape hatches available.
-2. **Typed end-to-end** — request params → proof struct → Solidity ABI, one type system.
-3. **Honest about time** — progress events with real ETAs; no fake 4-second claims.
-4. **Errors say what/why/how-to-fix** — every failure is a typed `FlareKitError` with
-   `code`, `retryable`, and `fix`.
-5. **Never hand-roll what the chain can tell us** — addresses from the on-chain
-   ContractRegistry, selectors derived from published ABIs (and asserted in tests).
-6. **Done = ran on Coston2** — unit tests check logic; only live tests check truth.
+Needs a funded Coston2 key (`phase0-research/.secrets.json`) and XRPL testnet wallets
+(auto-funded from the faucet on first run). Both are gitignored.
 
 ## Repo layout
 
 ```
-packages/sdk        @flarekit/sdk — FDC, FTSOv2, Secure Random clients
-packages/demo       FlarePay demo (Vite)
-docs/planning       PRD (full product), demo plan
-docs/research       benchmark + Phase 0 protocol research
-phase0-research     the original manual FDC run the SDK was ported from
+packages/sdk           @flarekit/sdk — FDC (5 attestation types), FTSOv2, Secure Random
+packages/contracts     FlarePayEscrow.sol + compile/deploy/live-settlement tests
+packages/pay-server    charges, XRPL watcher, settlement relay, x402 endpoints
+packages/demo          checkout UI + proof-backed receipts
+docs/planning          PRD v3 (product) · earlier toolkit/hackathon PRDs
+docs/research          measured benchmark · Phase 0 protocol research
 ```
+
+## The engine: FlareKit
+
+Every chain interaction above runs through [`@flarekit/sdk`](packages/sdk):
+
+```ts
+const kit = new FlareKit({ network: "coston2", privateKey });
+const result = await kit.fdc.verifyXrpPayment({ txId, proofOwner: escrow });
+result.response.destinationTag;   // 1006n — typed, straight from the proof
+```
+
+Coverage today: **5 FDC attestation types** (Payment, AddressValidity, EVMTransaction,
+XRPPayment, plus `capabilities()` probing), FTSOv2 feeds, Secure Random — every one gated on a
+live Coston2 test. See [packages/sdk/README.md](packages/sdk/README.md) and the measured
+[benchmark](docs/research/BENCHMARK.md).
 
 ## Roadmap
 
-- **Hackathon (Aug 14)** — this: SDK core (XRP payment + address paths, BTC/DOGE ready
-  pending verifier availability), FTSO reads, demo, measured benchmark.
-- **v0.2** — `@flarekit/testing` (instant-finality mocks, fixture record/replay), CLI
-  (`flarekit verify|doctor`), React hooks, MCP server.
-- **v1.0** — full attestation catalog (EVMTransaction, Web2Json, …), Solidity consumer
-  contracts, mainnet/Songbird, docs site with llms.txt.
+- **Now** — hosted facilitator + `@flarekit/pay` (drop-in checkout widget + server middleware)
+- **Next** — Smart Accounts integration so payers can also *act* on Flare; optional FXRP/USDT0
+  payout leg so merchants receive a DeFi-ready asset
+- **Then** — mainnet after fee/UX validation (20 FLR per attestation under FIP.16)
 
-Full scope: [docs/planning/PRD.md](docs/planning/PRD.md).
+## Status
 
-## Chain support (live-tested unless noted)
-
-| Chain | Payment | AddressValidity | EVMTransaction |
-|---|---|---|---|
-| XRP (XRPL testnet) | ✅ proven | ✅ proven | — |
-| DOGE (testnet) | ⚙ route up; needs a testnet tx source¹ | ✅ proven | — |
-| BTC (testnet) | ⛔ verifier down upstream² | ⛔ 〃 | — |
-| ETH (Sepolia) | — | — | ✅ proven |
-
-¹ No public Dogecoin-testnet explorer API exists to source a tx; the code path is
-identical to the proven DOGE AddressValidity pipeline.
-² `fault filter abort` on all Coston2 `/verifier/btc/*` routes, observed 2026-08-07.
-`kit.fdc.capabilities()` probes this live so your app gets it as data, not a mystery 404.
-
-## Status & caveats
-
-- Coston2 is the verified network; `flare`/`songbird` presets are structural placeholders
-  until their endpoints pass the same live gate.
-- Not audited; testnet use only for now.
+Testnet only, not audited. Coston2 is the verified network; `flare`/`songbird` presets exist
+but have not passed the same live gate.

@@ -18,6 +18,8 @@ successful verification. We measure the two separately.
 | Phase 0 manual | XRP AddressValidity | 79.9s | ~108.6s | tx `0xa2a8ae…1c70f6`, round 1,406,877 |
 | SDK `verifyAddress` | XRP AddressValidity | ~124s | 132.6s | tx `0x87d6259d…d39799`, round 1,418,002 |
 | SDK `verifyPayment` | XRP Payment (real XRPL testnet tx) | ~65s | 77.1s | tx `0x9506faa4…f98e12`, round 1,418,242 |
+| SDK `verifyXrpPayment` | XRPPayment, destination-tagged | ~90s | 123.9s | round 1,419,428 |
+| **FlarePay end-to-end** | charge → pay → prove → settle | — | **~160s** | charge 5, round 1,419,445 |
 
 Round-wait variance (65-124s) is protocol scheduling, not tooling. FlareKit surfaces it
 truthfully via progress events with ETAs instead of a fake spinner.
@@ -60,11 +62,28 @@ Because the kit wraps all enshrined protocols, these came free (measured live):
 - `kit.random.get()` — protocol secure random, one call, no wallet
 - `kit.fdc.estimate(...)` — fee (1000 wei measured) + honest ETA before spending anything
 
+## What the product costs to run (measured on Coston2)
+
+| Item | Cost |
+|---|---|
+| FDC attestation fee | 1000 wei (Coston2) · 20 FLR on mainnet under FIP.16 |
+| `createCharge` gas | ~300k (includes the FTSOv2 read) |
+| `settle` gas | ~250k (Merkle verification + checks) |
+| Payer cost | one XRPL transaction: ~0.000012 XRP |
+
+A gas note earned the hard way: `estimateGas` under-quotes `createCharge`, because FTSOv2's
+`getFeedById` is payable/non-view and its cost shifts as feeds update every ~1.8s. Sending with
+the raw estimate reverts out-of-gas; FlarePay adds a 50% buffer.
+
 ## Reproduce
 
 ```bash
 cd packages/sdk
-npx tsx integration/read-only.ts        # no wallet needed
-npx tsx integration/verify-address.ts   # needs funded Coston2 key
-npx tsx integration/verify-payment.ts   # needs funded Coston2 key
+npx tsx integration/read-only.ts          # no wallet needed
+npx tsx integration/verify-address.ts     # needs funded Coston2 key
+npx tsx integration/verify-payment.ts     # needs funded Coston2 key
+npx tsx integration/verify-xrp-payment.ts # sends a real tagged XRPL payment, then proves it
+
+cd ../contracts
+pnpm test:live                            # full FlarePay loop: charge → pay → prove → settle
 ```

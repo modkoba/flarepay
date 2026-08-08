@@ -4,43 +4,51 @@
 > Scope source of truth: `docs/planning/PRD.md` (v3, product-first: FlarePay powered by FlareKit).
 > Done = live Coston2 test green per feature (PRD §10), not "code compiles."
 
-## Now — FlarePay P0 (submission-blocking) #product
+## Now — remaining P0 (submission-blocking)
 
-- [ ] SDK: `fdc.verifyXrpPayment()` — XRPPayment type + proofOwner; live test with a
-      destination-tagged XRPL testnet payment (fallback if needed: classic Payment+memo, proven Aug 7)
-- [ ] `FlarePayEscrow.sol` (packages/contracts): createCharge / settle(proof) with
-      proof + tag + FTSO-price-band + replay checks; deploy Coston2; settle live once
-- [ ] Charge server (packages/pay-server): create charge, XRPL watcher, x402 endpoint
-- [ ] Checkout web (packages/demo evolves): charge page → QR/XRPL URI → honest progress
-      ticker → unlock → receipt page with "verify yourself"
-- [ ] Self-driving demo payment: funded XRPL-testnet wallet pays on click (BYO Xaman also works)
-- [ ] Submission pack: product-first README, benchmark refresh, 60s one-take video,
-      DoraHacks form with judging-criteria mapping + pre-existing/new-work split
-
-## Next — P1 (only after P0 live) #traction
-
-- [ ] Deploy public URL + post in hackathon Telegram + 2–3 outside testers (log results)
-- [ ] npm publish `@flarekit/sdk`
-- [ ] Webhook signatures + idempotency
-- [ ] x402 agent CLI clip (curl → 402 → pay → 200)
+- [ ] Deploy demo + charge server to a public URL (needs your hosting choice)
 - [ ] Push repo to GitHub (needs your go-ahead — public repo)
+- [ ] 60s demo video: checkout (real timing, uncut) + x402 curl clip
+- [ ] Submission writeup: judging-criteria mapping, pre-existing vs new work, contract
+      addresses, roadmap
 
-## Done — foundation (Aug 7–8) #sdk
+## Next — P1 (traction & polish)
+
+- [ ] 2–3 outside testers run the checkout; log results as traction signal
+- [ ] npm publish `@flarekit/sdk`
+- [ ] Webhook signatures + idempotent delivery for merchants
+- [ ] Charge expiry sweeper (expired charges currently just stop being payable)
+
+## Done — FlarePay product (Aug 8) #product
+
+- [x] SDK `fdc.verifyXrpPayment()` — XRPPayment type (0x08) + proofOwner binding;
+      live: verified true, tag/amount/memo/sender intact (123.9s, round 1,419,428)
+- [x] SDK `waitForIndexMs` + `waiting-index` step — fresh payments aren't in the verifier's
+      indexer yet; born from a real failure
+- [x] `FlarePayEscrow.sol` deployed Coston2 `0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD`;
+      proof + tag + merchant-hash + XRPL-status + FTSO-band + replay-guard checks
+- [x] Live acceptance: createCharge → real XRPL payment → proof → settle → isPaid true,
+      replay rejected (charge 1, round 1,419,435)
+- [x] Charge server: FTSO-priced charges, XRPL watcher, settlement relay, proof caching,
+      serialized tx queue (nonce race fix)
+- [x] x402 mode proven live: 402 → pay → 200 + resource in 160s (charge 5, round 1,419,445)
+- [x] Checkout UI + receipts proven live in browser (charge 7, round 1,419,449);
+      `?charge=N` restores a shareable, refresh-proof receipt
+- [x] README (product-first), BENCHMARK with FlarePay numbers + gas costs
+
+## Done — FlareKit foundation (Aug 7–8) #sdk
 
 - [x] SDK v2 ported from proven phase0 flow; registry-driven; no hardcoded selectors
-- [x] Live Coston2: verifyAddress XRP (132.6s) + DOGE (166.1s), verifyPayment XRP (77.1s),
-      EVMTransaction Sepolia (169.6s), FTSO reads, secure random, estimate, capabilities()
-- [x] FlarePay demo shell with honest progress UI; verified live in browser (141.5s settle)
-- [x] Measured BENCHMARK.md; READMEs; git history from baseline
-- [x] Deep research: full Flare surface map, flare-tx-sdk competitive intel,
-      90-winner pattern study; XRPPayment probes + verifyXRPPayment deployed-check
-- [x] PRD v3 (product-first); IDEA.md competitive claim corrected; Flare DevHub MCP configured
+- [x] Live Coston2: verifyAddress XRP + DOGE, verifyPayment XRP, EVMTransaction (Sepolia),
+      FTSO reads, secure random, estimate, capabilities()
+- [x] Deep research: full Flare surface map, flare-tx-sdk competitive intel, 90-winner study
+- [x] PRD v3 product pivot; IDEA.md competitive claim corrected; Flare DevHub MCP configured
 
-## Later — post-hackathon (PRD v3 §12 + toolkit v2 backlog)
+## Later — post-hackathon (PRD v3 §12)
 
 - [ ] Hosted facilitator (bps fee) + `@flarekit/pay` npm (widget + middleware)
 - [ ] Smart Accounts integration; FXRP/USDT0 payout leg
 - [ ] Remaining attestation types (Web2Json, CBHE, BDT, RPN, XRPPaymentNonexistence)
 - [ ] `@flarekit/testing` mock kit; CLI doctor; React hooks; MCP server
-- [ ] BTC paths when Coston2 verifier returns; DOGE Payment via verifier indexer
+- [ ] BTC paths when the Coston2 verifier returns; DOGE Payment via verifier indexer
 - [ ] Mainnet after fee/UX validation (20 FLR per attestation, FIP.16)
