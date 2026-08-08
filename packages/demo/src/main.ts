@@ -1,254 +1,241 @@
 /**
- * FlarePay demo — verify XRPL testnet payments on Flare via @flarekit/sdk.
+ * FlarePay checkout — buy a digital good with native XRP, settled on Flare.
  *
- * Two modes:
- *  - Live: real end-to-end FDC verification on Coston2 (~2-3 min, honest).
- *  - Replay: plays back a recorded live run (clearly labeled, instant-ish).
+ * The browser talks only to the FlarePay server; all chain work (FTSO pricing,
+ * FDC attestation, escrow settlement) happens there via @flarekit/sdk.
  */
 
-import { FlareKit, FlareKitError, type PaymentResult, type ProgressEvent } from "@flarekit/sdk";
-import replay from "./replay.json";
+const API = import.meta.env.VITE_PAY_API ?? "/pay-api";
 
-const DEMO_KEY: string | undefined = import.meta.env.VITE_DEMO_PRIVATE_KEY;
-
-const kit = new FlareKit({
-  network: "coston2",
-  privateKey: DEMO_KEY,
-  // Public verifier/DA endpoints have no CORS headers → proxied (vite.config.ts).
-  overrides: { verifierUrl: "/verifier-api", daLayerUrl: "/da-api" },
-});
-
-// ─── DOM ────────────────────────────────────────────────────────────
-const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
-const txInput = $<HTMLInputElement>("#txInput");
-const findBtn = $<HTMLButtonElement>("#findBtn");
-const verifyBtn = $<HTMLButtonElement>("#verifyBtn");
-const replayBtn = $<HTMLButtonElement>("#replayBtn");
-const progressCard = $("#progressCard");
-const progressTitle = $("#progressTitle");
-const clock = $("#clock");
-const roundNote = $("#roundNote");
-const resultCard = $("#resultCard");
-const verdict = $("#verdict");
-const facts = $("#facts");
-const proofJson = $("#proofJson");
-
-if (!DEMO_KEY) {
-  verifyBtn.disabled = true;
-  $("#walletNote").textContent =
-    "Live mode needs a funded Coston2 key: set VITE_DEMO_PRIVATE_KEY in packages/demo/.env.local " +
-    "(faucet.flare.network). Replay works without one.";
-} else {
-  $("#walletNote").textContent = "Live mode spends ~0.06 C2FLR per verification (testnet).";
+interface ChargeView {
+  id: string;
+  state: "awaiting_payment" | "payment_seen" | "attesting" | "settling" | "paid" | "failed";
+  usdCents: number;
+  xrpAmount: string;
+  drops: string;
+  rate: string;
+  destinationTag: number;
+  merchantAddress: string;
+  metadata: string;
+  createdTx: string;
+  xrplTxHash?: string;
+  votingRound?: number;
+  settleTx?: string;
+  error?: string;
+  steps: { step: string; at: number; etaSeconds?: number; detail?: string }[];
 }
 
-// ─── FTSO price strip (read-only, no wallet) ────────────────────────
+const EXPLORER = "https://coston2.flarescan.com";
+const XRPL_EXPLORER = "https://testnet.xrpl.org";
+
+const $ = <T extends HTMLElement>(sel: string) => document.querySelector(sel) as T;
+const buyBtn = $<HTMLButtonElement>("#buyBtn");
+const demoPayBtn = $<HTMLButtonElement>("#demoPayBtn");
+const storeCard = $("#storeCard");
+const checkoutCard = $("#checkoutCard");
+const receiptCard = $("#receiptCard");
+const clock = $("#clock");
+const roundNote = $("#roundNote");
+
+let charge: ChargeView | null = null;
+let clockTimer: number | undefined;
+let pollTimer: number | undefined;
+
+// ─── Boot: server check, and restore a shared receipt if linked ─────
 (async () => {
   try {
-    const feeds = await kit.ftso.readMany(["FLR/USD", "XRP/USD", "BTC/USD"]);
-    for (const feed of feeds) {
-      const chip = document.querySelector(`[data-feed="${feed.symbol}"] b`);
-      if (chip) chip.textContent = feed.price.toLocaleString("en-US", { maximumSignificantDigits: 6 });
-    }
+    const res = await fetch(`${API}/api/health`);
+    if (!res.ok) throw new Error("server down");
+    $("#priceHint").innerHTML = `payable in XRP <em>at the live FTSOv2 rate</em>`;
   } catch {
-    /* price strip is decorative — degrade silently */
+    $("#storeHint").textContent = "FlarePay server is offline — start it with `pnpm --filter @flarekit/pay-server start`.";
+    buyBtn.disabled = true;
+    return;
+  }
+
+  // Receipts are permanent facts on-chain, so ?charge=N restores one —
+  // shareable, refresh-proof, and independent of this browser's session.
+  const linked = new URLSearchParams(location.search).get("charge");
+  if (!linked) return;
+  const res = await fetch(`${API}/api/charges/${linked}`);
+  if (!res.ok) return;
+  charge = (await res.json()) as ChargeView;
+  renderCheckout(charge);
+  renderProgress(charge);
+  if (charge.state === "paid") renderReceipt(charge);
+  else {
+    startClock();
+    startPolling();
   }
 })();
 
-// ─── Progress rendering ─────────────────────────────────────────────
-type UiStep = "prepare" | "submit" | "round" | "proof" | "verify";
-const STEP_MAP: Record<string, UiStep> = {
-  preparing: "prepare", prepared: "prepare",
-  submitting: "submit", submitted: "submit",
-  "waiting-round": "round", "round-finalized": "round",
-  "fetching-proof": "proof", "proof-received": "proof",
-  verifying: "verify", done: "verify",
-};
-const DONE_EVENTS = new Set(["prepared", "submitted", "round-finalized", "proof-received", "done"]);
-
-let clockTimer: number | undefined;
-
-function resetProgress(title: string) {
-  progressCard.classList.remove("hidden");
-  resultCard.classList.add("hidden");
-  roundNote.classList.add("hidden");
-  progressTitle.textContent = title;
-  for (const li of document.querySelectorAll<HTMLElement>(".steps li")) {
-    li.className = "";
-    li.querySelector("em")!.textContent = "";
+// ─── Buy ────────────────────────────────────────────────────────────
+buyBtn.addEventListener("click", async () => {
+  buyBtn.disabled = true;
+  buyBtn.textContent = "Opening charge on Flare…";
+  try {
+    const res = await fetch(`${API}/api/charges`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usdCents: 200, metadata: "XRP Market Intelligence — August 2026" }),
+    });
+    const body = (await res.json()) as ChargeView & { error?: string };
+    if (!res.ok || !body.id) throw new Error(body.error ?? `server returned ${res.status}`);
+    charge = body;
+    history.replaceState(null, "", `?charge=${charge.id}`); // shareable receipt link
+    renderCheckout(charge);
+    startClock();
+    startPolling();
+  } catch (err) {
+    $("#storeHint").textContent = `Could not open a charge: ${String(err)}`;
+    buyBtn.disabled = false;
+    buyBtn.textContent = "Buy with XRP";
   }
+});
+
+demoPayBtn.addEventListener("click", async () => {
+  if (!charge) return;
+  demoPayBtn.disabled = true;
+  demoPayBtn.textContent = "Sending XRP from the demo wallet…";
+  try {
+    await fetch(`${API}/api/charges/${charge.id}/demo-pay`, { method: "POST" });
+    demoPayBtn.textContent = "Payment sent on XRPL ✓";
+  } catch (err) {
+    demoPayBtn.textContent = `Payment failed: ${String(err)}`;
+    demoPayBtn.disabled = false;
+  }
+});
+
+// ─── Rendering ──────────────────────────────────────────────────────
+function renderCheckout(c: ChargeView) {
+  storeCard.classList.add("hidden");
+  checkoutCard.classList.remove("hidden");
+
+  $("#payAmount").textContent = c.xrpAmount;
+  $("#payTo").textContent = c.merchantAddress;
+  $("#payTag").textContent = String(c.destinationTag);
+  $("#payDrops").textContent = `${c.xrpAmount} XRP (${c.drops} drops)`;
+  $("#payRate").textContent = `$${c.rate} / XRP · FTSOv2`;
+  $("#payCharge").innerHTML = `#${c.id} · <a href="${EXPLORER}/tx/${c.createdTx}" target="_blank" rel="noopener">on Flare ↗</a>`;
+
+  const uri = `${c.merchantAddress}?amount=${c.xrpAmount}&dt=${c.destinationTag}`;
+  $<HTMLImageElement>("#qrImage").src =
+    `https://api.qrserver.com/v1/create-qr-code/?size=190x190&margin=6&data=${encodeURIComponent(uri)}`;
+}
+
+const STEP_UI: Record<string, "paid_xrpl" | "attest" | "settle"> = {
+  charge_created: "paid_xrpl",
+  payment_seen: "paid_xrpl",
+  preparing: "attest",
+  "waiting-index": "attest",
+  prepared: "attest",
+  submitting: "attest",
+  submitted: "attest",
+  "waiting-round": "attest",
+  "round-finalized": "attest",
+  "fetching-proof": "attest",
+  "proof-received": "attest",
+  verifying: "attest",
+  done: "attest",
+  settling: "settle",
+  paid: "settle",
+};
+
+function renderProgress(c: ChargeView) {
+  const done = new Set<string>();
+  if (c.xrplTxHash) done.add("paid_xrpl");
+  if (c.steps.some((s) => s.step === "done")) done.add("attest");
+  if (c.state === "paid") done.add("settle");
+
+  const last = c.steps[c.steps.length - 1];
+  const active = last ? STEP_UI[last.step] : undefined;
+
+  for (const li of document.querySelectorAll<HTMLElement>(".steps li")) {
+    const key = li.dataset.step!;
+    li.className = done.has(key) ? "done" : key === active ? "active" : "";
+    const label = li.querySelector("em")!;
+    if (key === "paid_xrpl" && c.xrplTxHash) {
+      label.innerHTML = `<a href="${XRPL_EXPLORER}/transactions/${c.xrplTxHash}" target="_blank" rel="noopener">XRPL ↗</a>`;
+    } else if (key === "attest" && c.votingRound) {
+      label.textContent = `round ${c.votingRound}`;
+    } else if (key === "settle" && c.settleTx) {
+      label.innerHTML = `<a href="${EXPLORER}/tx/${c.settleTx}" target="_blank" rel="noopener">Flare ↗</a>`;
+    }
+  }
+
+  const waiting = [...c.steps].reverse().find((s) => s.step === "waiting-round" || s.step === "waiting-index");
+  if (waiting && c.state !== "paid" && active === "attest") {
+    roundNote.classList.remove("hidden");
+    roundNote.textContent =
+      waiting.step === "waiting-index"
+        ? `Waiting for the FDC verifier to index the XRPL payment… (~${waiting.etaSeconds ?? "?"}s budget)`
+        : `FDC voting round finalizing — real protocol time, not a spinner. ETA ~${waiting.etaSeconds ?? "?"}s.`;
+  } else {
+    roundNote.classList.add("hidden");
+  }
+}
+
+function renderReceipt(c: ChargeView) {
+  stopTimers();
+  receiptCard.classList.remove("hidden");
+  $("#unlocked").innerHTML = `
+    <div class="unlocked-title">📊 ${c.metadata}</div>
+    <p>Unlocked. Settled cross-chain: a native XRP payment, proven on Flare.</p>`;
+
+  const rows: [string, string][] = [
+    ["Paid", `$${(c.usdCents / 100).toFixed(2)} = ${c.xrpAmount} XRP @ $${c.rate}`],
+    ["Destination tag", String(c.destinationTag)],
+    ["Voting round", String(c.votingRound ?? "—")],
+  ];
+  const facts = $("#receiptFacts");
+  facts.innerHTML = "";
+  for (const [k, v] of rows) facts.insertAdjacentHTML("beforeend", `<dt>${k}</dt><dd>${v}</dd>`);
+  if (c.xrplTxHash) {
+    facts.insertAdjacentHTML(
+      "beforeend",
+      `<dt>XRPL payment</dt><dd><a href="${XRPL_EXPLORER}/transactions/${c.xrplTxHash}" target="_blank" rel="noopener">${short(c.xrplTxHash)} ↗</a></dd>`
+    );
+  }
+  if (c.settleTx) {
+    facts.insertAdjacentHTML(
+      "beforeend",
+      `<dt>Flare settlement</dt><dd><a href="${EXPLORER}/tx/${c.settleTx}" target="_blank" rel="noopener">${short(c.settleTx)} ↗</a></dd>`
+    );
+  }
+  receiptCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+// ─── Polling & timers ───────────────────────────────────────────────
+function startPolling() {
+  pollTimer = window.setInterval(async () => {
+    if (!charge) return;
+    try {
+      const res = await fetch(`${API}/api/charges/${charge.id}`);
+      charge = (await res.json()) as ChargeView;
+      renderProgress(charge);
+      if (charge.state === "paid") renderReceipt(charge);
+      if (charge.state === "failed") {
+        stopTimers();
+        roundNote.classList.remove("hidden");
+        roundNote.textContent = `Settlement failed: ${charge.error ?? "unknown error"}`;
+      }
+    } catch {
+      /* transient — keep polling */
+    }
+  }, 2500);
+}
+
+function startClock() {
   const startedAt = Date.now();
-  clearInterval(clockTimer);
   clockTimer = window.setInterval(() => {
     const s = Math.floor((Date.now() - startedAt) / 1000);
     clock.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
   }, 250);
-  progressCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
-function renderEvent(event: ProgressEvent) {
-  const ui = STEP_MAP[event.step];
-  if (!ui) return;
-  const li = document.querySelector<HTMLElement>(`li[data-step="${ui}"]`)!;
-  const seconds = `${Math.round(event.elapsedMs / 1000)}s`;
-
-  if (DONE_EVENTS.has(event.step)) {
-    li.className = "done";
-    li.querySelector("em")!.textContent = seconds;
-    // mark every earlier step done too (guards missed events)
-    let prev = li.previousElementSibling as HTMLElement | null;
-    while (prev && prev.className !== "done") { prev.className = "done"; prev = prev.previousElementSibling as HTMLElement | null; }
-  } else {
-    li.className = "active";
-    li.querySelector("em")!.textContent =
-      event.step === "waiting-round" && event.etaSeconds ? `~${event.etaSeconds}s left` : seconds;
-  }
-
-  if (event.step === "waiting-round") {
-    roundNote.classList.remove("hidden");
-    roundNote.textContent =
-      `Voting round ${(event.detail as { votingRoundId?: number })?.votingRoundId ?? "…"} is finalizing — ` +
-      `this is real protocol time, not a spinner. ETA ~${event.etaSeconds ?? "?"}s.`;
-  }
-  if (event.step === "round-finalized") roundNote.classList.add("hidden");
-}
-
-function renderResult(result: PaymentResult, totalSeconds: number, mode: "live" | "replay") {
+function stopTimers() {
   clearInterval(clockTimer);
-  progressTitle.textContent = mode === "live" ? "Complete — verified on Coston2" : "Replay complete";
-  resultCard.classList.remove("hidden");
-  verdict.className = `verdict ${result.verified ? "ok" : "bad"}`;
-  verdict.textContent = result.verified
-    ? `✓ Payment verified on Flare${mode === "replay" ? " (recorded run)" : ""}`
-    : "✗ Verification failed";
-
-  const xrp = Number(BigInt(result.response.receivedAmount)) / 1e6;
-  const explorer = `${kit.network.explorerUrl}/tx/${result.requestTxHash}`;
-  facts.innerHTML = "";
-  const rows: [string, string][] = [
-    ["Amount received", `${xrp} XRP`],
-    ["Payment status", String(result.response.status) === "0" ? "0 — success" : String(result.response.status)],
-    ["XRPL block", `${result.response.blockNumber}`],
-    ["Voting round", `${result.votingRoundId}`],
-    ["Attestation fee", `${result.feePaidWei} wei`],
-    ["Total time", `${totalSeconds.toFixed(1)}s${mode === "replay" ? " (recorded live run)" : ""}`],
-  ];
-  for (const [k, v] of rows) {
-    facts.insertAdjacentHTML("beforeend", `<dt>${k}</dt><dd>${v}</dd>`);
-  }
-  facts.insertAdjacentHTML(
-    "beforeend",
-    `<dt>Request tx</dt><dd><a href="${explorer}" target="_blank" rel="noopener">${short(result.requestTxHash)} ↗</a></dd>`
-  );
-  proofJson.textContent = JSON.stringify(result.proof, (_k, v) => (typeof v === "bigint" ? v.toString() : v), 2);
-  resultCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
-}
-
-function renderError(err: unknown) {
-  clearInterval(clockTimer);
-  resultCard.classList.remove("hidden");
-  verdict.className = "verdict bad";
-  facts.innerHTML = "";
-  proofJson.textContent = "";
-  if (err instanceof FlareKitError) {
-    verdict.textContent = `✗ ${err.code}`;
-    facts.insertAdjacentHTML("beforeend", `<dt>What happened</dt><dd>${err.message}</dd>`);
-    facts.insertAdjacentHTML("beforeend", `<dt>How to fix</dt><dd>${err.fix}</dd>`);
-    facts.insertAdjacentHTML("beforeend", `<dt>Retryable</dt><dd>${err.retryable}</dd>`);
-  } else {
-    verdict.textContent = "✗ Unexpected error";
-    facts.insertAdjacentHTML("beforeend", `<dt>Detail</dt><dd>${String(err)}</dd>`);
-  }
+  clearInterval(pollTimer);
 }
 
 const short = (hash: string) => `${hash.slice(0, 10)}…${hash.slice(-8)}`;
-
-// ─── Find a recent native-XRP payment on XRPL testnet ───────────────
-async function findRecentPayment(): Promise<string> {
-  const rpc = async (method: string, params: object) => {
-    const res = await fetch("/xrpl-api/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ method, params: [params] }),
-    });
-    return res.json();
-  };
-  const info = await rpc("ledger", { ledger_index: "validated" });
-  const tip = Number(info.result.ledger.ledger_index);
-  for (let li = tip - 12; li < tip - 4; li++) {
-    const ledger = await rpc("ledger", { ledger_index: li, transactions: true, expand: true });
-    for (const tx of ledger.result.ledger.transactions ?? []) {
-      const t = tx.tx_json ?? tx;
-      const delivered = t.DeliverMax ?? t.Amount;
-      if (t.TransactionType === "Payment" && typeof delivered === "string" && (tx.hash ?? t.hash)) {
-        return tx.hash ?? t.hash;
-      }
-    }
-  }
-  throw new Error("No recent native-XRP payment found; paste a hash manually.");
-}
-
-// ─── Actions ────────────────────────────────────────────────────────
-findBtn.addEventListener("click", async () => {
-  findBtn.disabled = true;
-  findBtn.textContent = "Searching…";
-  try {
-    txInput.value = await findRecentPayment();
-  } catch (err) {
-    txInput.placeholder = String(err);
-  } finally {
-    findBtn.disabled = false;
-    findBtn.textContent = "Find recent";
-  }
-});
-
-verifyBtn.addEventListener("click", async () => {
-  const txId = txInput.value.trim();
-  if (!/^(0x)?[0-9a-fA-F]{64}$/.test(txId)) {
-    txInput.focus();
-    txInput.setCustomValidity("Need a 64-hex-char XRPL tx hash");
-    txInput.reportValidity();
-    return;
-  }
-  verifyBtn.disabled = true;
-  replayBtn.disabled = true;
-  resetProgress("Verifying live on Coston2…");
-  const startedAt = Date.now();
-  try {
-    const result = await kit.fdc.verifyPayment({ chain: "XRP", txId }, { onProgress: renderEvent });
-    renderResult(result, (Date.now() - startedAt) / 1000, "live");
-  } catch (err) {
-    renderError(err);
-  } finally {
-    verifyBtn.disabled = !DEMO_KEY;
-    replayBtn.disabled = false;
-  }
-});
-
-replayBtn.addEventListener("click", async () => {
-  replayBtn.disabled = true;
-  verifyBtn.disabled = true;
-  resetProgress("Replaying a recorded live run (12× speed)…");
-  txInput.value = replay.payment.hash;
-
-  // Reconstruct the event stream from the recorded per-step timings.
-  const order = ["preparing", "prepared", "submitting", "submitted", "waiting-round", "round-finalized", "fetching-proof", "proof-received", "verifying", "done"] as const;
-  const timings = replay.result.timings as Record<string, number>;
-  let elapsed = 0;
-  for (const step of order) {
-    const recordedMs = timings[step] ?? 0;
-    await sleep(Math.min(Math.max(recordedMs / 12, 120), 2500));
-    elapsed += recordedMs;
-    renderEvent({
-      step,
-      elapsedMs: elapsed,
-      etaSeconds: step === "waiting-round" ? Math.round((timings["round-finalized"] ?? 0) / 1000) : undefined,
-      detail: { votingRoundId: replay.result.votingRoundId },
-    });
-  }
-  renderResult(replay.result as unknown as PaymentResult, replay.totalSeconds, "replay");
-  replayBtn.disabled = false;
-  verifyBtn.disabled = !DEMO_KEY;
-});
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

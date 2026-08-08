@@ -6,6 +6,12 @@ import { defineConfig } from "vite";
 export default defineConfig({
   server: {
     proxy: {
+      // FlarePay charge server (same-origin in production).
+      "/pay-api": {
+        target: "http://localhost:8787",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/pay-api/, ""),
+      },
       "/verifier-api": {
         target: "https://fdc-verifiers-testnet.flare.network",
         changeOrigin: true,

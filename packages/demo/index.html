@@ -3,112 +3,151 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlarePay — verify XRP payments on Flare with FlareKit</title>
-    <meta name="description" content="A checkout that accepts XRPL testnet payments and settles them with FDC proofs on Flare (Coston2), built on @flarekit/sdk." />
+    <title>FlarePay — accept XRP, settle on Flare with proofs</title>
+    <meta name="description" content="Accept native XRP payments with programmable settlement on Flare. No custody, no processor, every receipt is a cryptographic proof." />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
     <main class="shell">
       <header class="hero">
-        <div class="brand">Flare<span>Kit</span></div>
-        <h1>FlarePay</h1>
+        <div class="brand">Flare<span>Pay</span></div>
+        <h1>Accept XRP like Stripe.<br />Except nobody holds your money.</h1>
         <p class="tagline">
-          Accept an XRP payment. Prove it on Flare. One SDK call.
+          Native XRP payments, settled on Flare by cryptographic proof — no custodial
+          processor, no chargebacks, no EVM wallet for the payer.
         </p>
         <div class="badges">
-          <span class="badge">Coston2 testnet</span>
-          <span class="badge">FDC · FTSOv2 · Secure Random</span>
-          <span class="badge accent">Interoperable Asset Products</span>
+          <span class="badge">Coston2 + XRPL testnet</span>
+          <span class="badge">FDC XRPPayment · FTSOv2</span>
+          <span class="badge accent">Bounty 1 — Interoperable Asset Products</span>
         </div>
       </header>
 
-      <section class="prices" id="prices" aria-label="Live FTSOv2 prices">
-        <div class="price-chip" data-feed="FLR/USD">FLR/USD <b>—</b></div>
-        <div class="price-chip" data-feed="XRP/USD">XRP/USD <b>—</b></div>
-        <div class="price-chip" data-feed="BTC/USD">BTC/USD <b>—</b></div>
-        <span class="prices-note">live from FTSOv2 · <code>kit.ftso.read()</code></span>
-      </section>
-
-      <section class="card checkout">
-        <h2>Verify a payment</h2>
-        <p class="hint">
-          Paste an XRPL <em>testnet</em> payment hash — or let the demo find a recent one.
+      <!-- ── The store ─────────────────────────────────────────── -->
+      <section class="card store" id="storeCard">
+        <div class="product">
+          <div class="product-art">📊</div>
+          <div class="product-info">
+            <h2>XRP Market Intelligence</h2>
+            <p>August 2026 edition · instant download</p>
+            <div class="price">
+              <strong>$2.00</strong>
+              <span id="priceHint">≈ — XRP <em>live FTSOv2 rate</em></span>
+            </div>
+          </div>
+        </div>
+        <button id="buyBtn" class="primary wide">Buy with XRP</button>
+        <p class="hint" id="storeHint">
+          Opens a charge on Flare, priced by FTSOv2 and payable from any XRPL wallet.
         </p>
-        <div class="row">
-          <input id="txInput" spellcheck="false" placeholder="XRPL testnet transaction hash (64 hex chars)" />
-          <button id="findBtn" class="ghost" title="Find a recent native-XRP payment on XRPL testnet">Find recent</button>
-        </div>
-        <div class="row actions">
-          <button id="verifyBtn" class="primary">Verify live on Coston2</button>
-          <button id="replayBtn" class="ghost">Instant replay (recorded run)</button>
-        </div>
-        <p class="wallet-note" id="walletNote"></p>
       </section>
 
-      <section class="card progress hidden" id="progressCard">
-        <div class="progress-head">
-          <h2 id="progressTitle">Verifying…</h2>
+      <!-- ── Checkout ──────────────────────────────────────────── -->
+      <section class="card checkout hidden" id="checkoutCard">
+        <div class="checkout-head">
+          <h2>Pay <span id="payAmount">—</span> XRP</h2>
           <div class="clock" id="clock">0:00</div>
         </div>
+
+        <div class="pay-grid">
+          <div class="qr-wrap">
+            <img id="qrImage" alt="XRPL payment QR code" />
+            <span class="qr-note">scan with Xaman (testnet)</span>
+          </div>
+          <dl class="pay-facts">
+            <dt>Send to</dt>
+            <dd id="payTo">—</dd>
+            <dt>Destination tag</dt>
+            <dd id="payTag" class="highlight">—</dd>
+            <dt>Amount</dt>
+            <dd id="payDrops">—</dd>
+            <dt>Rate pinned</dt>
+            <dd id="payRate">—</dd>
+            <dt>Charge</dt>
+            <dd id="payCharge">—</dd>
+          </dl>
+        </div>
+
+        <button id="demoPayBtn" class="ghost wide">
+          Pay from the demo wallet (no wallet install needed)
+        </button>
+
         <ol class="steps" id="steps">
-          <li data-step="prepare"><b>Prepare request</b><span>verifier computes canonical request + MIC</span><em></em></li>
-          <li data-step="submit"><b>Submit &amp; pay fee</b><span>FdcHub.requestAttestation on Coston2</span><em></em></li>
-          <li data-step="round"><b>Voting round finalizes</b><span>the honest part — ~90–180s of real protocol time</span><em></em></li>
-          <li data-step="proof"><b>Fetch Merkle proof</b><span>Data Availability layer</span><em></em></li>
-          <li data-step="verify"><b>Verify on-chain</b><span>FdcVerification.verifyPayment (staticCall)</span><em></em></li>
+          <li data-step="paid_xrpl"><b>Payment lands on XRPL</b><span>~4 seconds</span><em></em></li>
+          <li data-step="attest"><b>FDC attests the payment</b><span>voting round — real protocol time, ~90–180s</span><em></em></li>
+          <li data-step="settle"><b>Escrow settles on Flare</b><span>proof + tag + FTSO price band verified on-chain</span><em></em></li>
         </ol>
         <p class="round-note hidden" id="roundNote"></p>
       </section>
 
-      <section class="card result hidden" id="resultCard">
-        <div class="verdict" id="verdict"></div>
-        <dl class="facts" id="facts"></dl>
-        <details>
-          <summary>Reusable proof (verifies forever — <code>kit.fdc.verifyProof()</code>)</summary>
-          <pre id="proofJson"></pre>
-        </details>
+      <!-- ── Receipt ───────────────────────────────────────────── -->
+      <section class="card receipt hidden" id="receiptCard">
+        <div class="verdict ok">✓ Paid — settled by proof on Flare</div>
+        <div class="unlocked" id="unlocked"></div>
+        <dl class="facts" id="receiptFacts"></dl>
+        <p class="hint">
+          This receipt is a Merkle proof against a finalized FDC round. It verifies
+          forever, by anyone — no trust in this server required.
+        </p>
       </section>
 
+      <!-- ── How it works ──────────────────────────────────────── -->
+      <section class="card how">
+        <h2>How a payment settles</h2>
+        <div class="flow">
+          <div class="flow-step"><b>1</b><span>Charge opened on Flare, priced by <code>FTSOv2</code></span></div>
+          <div class="flow-step"><b>2</b><span>Payer sends native XRP with the charge's destination tag</span></div>
+          <div class="flow-step"><b>3</b><span><code>FDC XRPPayment</code> attests it — tag, amount, sender</span></div>
+          <div class="flow-step"><b>4</b><span><code>FlarePayEscrow.settle(proof)</code> releases the goods</span></div>
+        </div>
+        <div class="trust">
+          <div>
+            <h3>Trustless</h3>
+            <ul>
+              <li>Payment existence, amount, tag (FDC proof, verified on-chain)</li>
+              <li>USD→XRP conversion (FTSOv2, pinned at charge time)</li>
+              <li>Release conditions (contract code, replay-guarded)</li>
+            </ul>
+          </div>
+          <div>
+            <h3>Not trusted</h3>
+            <ul>
+              <li>This server — it only relays proofs; anyone can submit them</li>
+              <li>Custody — funds go payer → merchant on XRPL, never through us</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- ── x402 ──────────────────────────────────────────────── -->
       <section class="card code">
-        <h2>The entire integration</h2>
-        <pre><code>import { FlareKit } from "@flarekit/sdk";
+        <h2>Same rail, for AI agents (x402)</h2>
+        <p class="hint">
+          Flare's own x402 guide is blocked on FXRP gaining EIP-3009. FlarePay settles a
+          <em>proof of a native XRP payment</em> instead — so it works today, and the
+          agent needs no EVM wallet and no gas.
+        </p>
+        <pre><code>$ curl https://flarepay.demo/api/report
+HTTP/1.1 402 Payment Required
+{ "accepts": [{ "scheme": "xrpl-payment", "payTo": "rBRX…K75i",
+                "destinationTag": 1002, "amount": "1.93", "asset": "XRP",
+                "settlement": "flare-fdc-xrppayment" }] }
 
-const kit = new FlareKit({ network: "coston2", privateKey });
-
-const result = await kit.fdc.verifyPayment(
-  { chain: "XRP", txId },
-  { onProgress: (e) =&gt; render(e) },
-);
-
-result.verified;                 // true — from the on-chain staticCall
-result.response.receivedAmount;  // bigint, drops</code></pre>
-      </section>
-
-      <section class="bench">
-        <div class="bench-col before">
-          <h3>Manual FDC</h3>
-          <ul>
-            <li>10 steps, 6 contracts, 2 REST APIs</li>
-            <li>ABI encoding, MIC, round math, polling, Merkle proofs</li>
-            <li>hours of docs before the first verification</li>
-          </ul>
-        </div>
-        <div class="bench-col after">
-          <h3>FlareKit</h3>
-          <ul>
-            <li>1 function call, typed end-to-end</li>
-            <li>progress events with honest ETAs</li>
-            <li>first verification in &lt; 5 minutes</li>
-          </ul>
-        </div>
+$ # agent pays from any XRPL wallet, then retries
+$ curl -H "X-Payment: 3" https://flarepay.demo/api/report
+HTTP/1.1 200 OK
+{ "title": "XRP Market Intelligence…",
+  "settlement": { "votingRound": 1419435, "settleTx": "0x8732…" } }</code></pre>
       </section>
 
       <footer>
         <p>
-          FDC voting rounds take ~90–180 seconds — that's the protocol, and this demo doesn't fake it.
-          The "instant replay" plays back a recorded live run, clearly labeled.
+          Built on <b>FlareKit</b> — our open-source TypeScript SDK for Flare's enshrined
+          protocols (FDC · FTSOv2 · Secure Random), which powers every step above.
         </p>
-        <p class="fine">FlareKit · Flare Summer Signal 2026 · Bounty 1 — Interoperable Asset Products</p>
+        <p class="fine">
+          FDC voting rounds take ~90–180s. This demo shows real timing and never fakes it.
+        </p>
       </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>
