@@ -1,56 +1,46 @@
-# FlareKit — TODO
+# FlarePay / FlareKit — TODO
 
-> Solo build for Flare Summer Signal hackathon (Aug 14 deadline).
-> Scope source of truth: `docs/planning/PRD.md` (v2 full product; Milestone 1 = hackathon).
-> Done = live Coston2 integration test green (PRD §12), not "code compiles."
+> Solo build for Flare Summer Signal hackathon (deadline Aug 14, Bounty 1).
+> Scope source of truth: `docs/planning/PRD.md` (v3, product-first: FlarePay powered by FlareKit).
+> Done = live Coston2 test green per feature (PRD §10), not "code compiles."
 
-## Now — Milestone 1 P0 (submission-blocking) #sdk
+## Now — FlarePay P0 (submission-blocking) #product
 
-- [x] git init (secrets audit passed: only .env.example tracked)
-- [ ] push to GitHub (public repo — needs your go-ahead)
-- [x] Rebuild SDK core as direct port of `phase0-research/scripts/run-phase0-test.ts`
-      — registry-driven addresses, real ABIs via ethers.Contract, NO hardcoded selectors
-- [x] `kit.fdc.verifyAddress()` — green live test on Coston2 (132.6s, proof reuse ✓)
-- [x] `kit.fdc.verifyPayment()` XRP — green live test on Coston2 (77.1s, real XRPL tx)
-- [x] Aug 9 gate resolved early (Aug 7): Coston2 BTC verifier is DOWN upstream
-      ("fault filter abort") → XRP-first demo; BTC/DOGE paths ready when verifier returns
-- [x] `kit.fdc.estimate()` + progress events (`prepared → submitted → round → proof → verified`)
-- [x] Typed errors thrown from live-reproduced failures (VerifierRejectedError proven
-      live: "NOT NATIVE PAYMENT TRANSACTION" surfaced with code+fix)
-- [x] `kit.ftso.read()` price feed — green live test (+ `random.get()`, free win)
-- [x] FlarePay checkout demo (honest ~2min progress UI + recorded replay), verified in browser
-- [ ] Deploy demo to public URL (Vercel/Netlify — needs your account/go-ahead;
-      3 proxy rewrites documented in vite.config.ts)
-- [x] BENCHMARK.md with measured numbers (manual phase0 vs SDK, tx hashes included)
-- [x] Root README + SDK README rewritten against the real API
-- [ ] npm publish `@flarekit/sdk@0.1` (publishing — needs your go-ahead)
-- [ ] 60s demo video (needs you: screen record the demo replay + live run)
-- [ ] Submission writeup mapped to all five judging criteria
+- [ ] SDK: `fdc.verifyXrpPayment()` — XRPPayment type + proofOwner; live test with a
+      destination-tagged XRPL testnet payment (fallback if needed: classic Payment+memo, proven Aug 7)
+- [ ] `FlarePayEscrow.sol` (packages/contracts): createCharge / settle(proof) with
+      proof + tag + FTSO-price-band + replay checks; deploy Coston2; settle live once
+- [ ] Charge server (packages/pay-server): create charge, XRPL watcher, x402 endpoint
+- [ ] Checkout web (packages/demo evolves): charge page → QR/XRPL URI → honest progress
+      ticker → unlock → receipt page with "verify yourself"
+- [ ] Self-driving demo payment: funded XRPL-testnet wallet pays on click (BYO Xaman also works)
+- [ ] Submission pack: product-first README, benchmark refresh, 60s one-take video,
+      DoraHacks form with judging-criteria mapping + pre-existing/new-work split
 
-## Next — Milestone 1 P1 (only after P0 deployed) #dx
+## Next — P1 (only after P0 live) #traction
 
-- [ ] `@flarekit/testing` mock kit — instant finality, fixture record/replay
-      (fixtures already recorded in packages/sdk/integration/out/)
-- [ ] CLI: `flarekit verify`, `flarekit doctor`
-- [ ] `@flarekit/react` hooks (`useVerifyPayment` status machine)
-- [ ] `@flarekit/mcp` server — Claude zero-shot verify demo
+- [ ] Deploy public URL + post in hackathon Telegram + 2–3 outside testers (log results)
+- [ ] npm publish `@flarekit/sdk`
+- [ ] Webhook signatures + idempotency
+- [ ] x402 agent CLI clip (curl → 402 → pay → 200)
+- [ ] Push repo to GitHub (needs your go-ahead — public repo)
 
-## Chain expansion (pulled forward from Later — done 2026-08-07) #sdk
+## Done — foundation (Aug 7–8) #sdk
 
-- [x] DOGE proven live: AddressValidity full lifecycle green (166.1s, round 1,418,259);
-      Payment route confirmed up, needs a Dogecoin-testnet tx source (no public explorer API)
-- [x] EVMTransaction (Sepolia) — full lifecycle green (169.6s, round 1,418,264, events decoded)
-- [x] `kit.fdc.capabilities()` — live verifier support matrix, no-cost probes
-- [x] Regression fixed + pinned in unit tests: empty decoded arrays became {} and broke
-      proof re-encoding ("invalid array value")
+- [x] SDK v2 ported from proven phase0 flow; registry-driven; no hardcoded selectors
+- [x] Live Coston2: verifyAddress XRP (132.6s) + DOGE (166.1s), verifyPayment XRP (77.1s),
+      EVMTransaction Sepolia (169.6s), FTSO reads, secure random, estimate, capabilities()
+- [x] FlarePay demo shell with honest progress UI; verified live in browser (141.5s settle)
+- [x] Measured BENCHMARK.md; READMEs; git history from baseline
+- [x] Deep research: full Flare surface map, flare-tx-sdk competitive intel,
+      90-winner pattern study; XRPPayment probes + verifyXRPPayment deployed-check
+- [x] PRD v3 (product-first); IDEA.md competitive claim corrected; Flare DevHub MCP configured
 
-## Later — post-hackathon (PRD Milestones 2–3)
+## Later — post-hackathon (PRD v3 §12 + toolkit v2 backlog)
 
-- [ ] BTC payment + address live tests (blocked upstream: Coston2 BTC verifier down 2026-08-07)
-- [ ] DOGE Payment live test (needs testnet tx source — consider faucet + self-send)
-- [ ] Web2Json attestation type
-- [ ] `@flarekit/contracts` — FdcConsumerBase + escrow/paywall examples
-- [ ] Docs site with llms.txt, CI-compiled snippets
-- [ ] Songbird + mainnet presets through the live gate
-- [ ] `flarekit init` scaffolding templates
-- [ ] 3+ external adopters, MCP registry listing
+- [ ] Hosted facilitator (bps fee) + `@flarekit/pay` npm (widget + middleware)
+- [ ] Smart Accounts integration; FXRP/USDT0 payout leg
+- [ ] Remaining attestation types (Web2Json, CBHE, BDT, RPN, XRPPaymentNonexistence)
+- [ ] `@flarekit/testing` mock kit; CLI doctor; React hooks; MCP server
+- [ ] BTC paths when Coston2 verifier returns; DOGE Payment via verifier indexer
+- [ ] Mainnet after fee/UX validation (20 FLR per attestation, FIP.16)
