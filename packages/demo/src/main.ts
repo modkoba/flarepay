@@ -7,6 +7,26 @@
 
 const API = import.meta.env.VITE_PAY_API ?? "/pay-api";
 
+// ─── 3D hero: lazy-loaded so three.js never blocks the checkout, and
+// fails soft (no WebGL → static background + copy) ──────────────────
+void (async () => {
+  try {
+    const { mountHero, startLiveSync } = await import("./hero.js");
+    const handles = mountHero(
+      document.querySelector("#heroCanvas") as HTMLCanvasElement,
+      document.querySelector("#liveStatus") as HTMLElement
+    );
+    startLiveSync(
+      handles,
+      document.querySelector("#liveStatus") as HTMLElement,
+      document.querySelector("#liveRate") as HTMLElement
+    );
+  } catch (err) {
+    console.warn("hero disabled:", err);
+    (document.querySelector("#liveStatus") as HTMLElement).textContent = "";
+  }
+})();
+
 interface ChargeView {
   id: string;
   state: "awaiting_payment" | "payment_seen" | "attesting" | "settling" | "paid" | "failed";

@@ -23,7 +23,51 @@ body {
 
 .shell { max-width: 760px; margin: 0 auto; padding: 44px 20px 64px; }
 
-/* hero */
+/* ── 3D hero ─────────────────────────────────────────────────────── */
+.hero3d {
+  position: relative;
+  height: 100svh;
+  min-height: 560px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+#heroCanvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.hero3d-content {
+  position: relative;
+  z-index: 2;
+  text-align: left;
+  max-width: 590px;
+  justify-self: start;
+  padding: 0 20px 0 max(6vw, 24px);
+  pointer-events: none; /* let hovers reach the tree… */
+}
+.hero3d-content .tagline { margin-left: 0; }
+.hero3d-content .badges { justify-content: flex-start; }
+@media (max-width: 860px) {
+  .hero3d-content { text-align: center; justify-self: center; padding: 0 20px; }
+  .hero3d-content .badges { justify-content: center; }
+  .hero3d-content .tagline { margin: 0 auto 16px; }
+}
+.hero3d-content a, .hero3d-content .badges { pointer-events: auto; } /* …except real controls */
+.hero3d-content h1 { text-shadow: 0 2px 30px rgba(11, 12, 16, 0.9); }
+.hero3d-content .tagline { text-shadow: 0 1px 18px rgba(11, 12, 16, 0.9); }
+.hero3d-actions { margin: 18px 0 20px; }
+.btn-link {
+  display: inline-block; text-decoration: none;
+  border-radius: 10px; padding: 12px 22px; font-size: 0.95rem; font-weight: 600;
+}
+.btn-link.primary { background: var(--accent); color: white; }
+.btn-link.primary:hover { filter: brightness(1.12); }
+.hero3d-status {
+  position: absolute; z-index: 2; left: 0; right: 0; bottom: 14px;
+  display: flex; gap: 18px; justify-content: center; flex-wrap: wrap;
+  font-family: var(--mono); font-size: 0.74rem; color: var(--muted);
+}
+.hero3d-status b { color: var(--ok); font-weight: 700; }
+.hero3d-hint { opacity: 0.7; }
+
+/* hero (legacy header styles reused inside hero3d) */
 .hero { text-align: center; margin-bottom: 30px; }
 .brand { font-weight: 700; letter-spacing: 0.4px; color: var(--muted); }
 .brand span { color: var(--accent); }
@@ -60,7 +104,9 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   width: 78px; height: 78px; flex: none; border-radius: 12px;
   background: var(--panel-2); border: 1px solid var(--line);
   display: grid; place-items: center; font-size: 2.1rem;
+  overflow: hidden;
 }
+.product-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .product-info h2 { margin: 0 0 2px; }
 .product-info p { margin: 0 0 8px; color: var(--muted); font-size: 0.88rem; }
 .price { display: flex; align-items: baseline; gap: 10px; }
@@ -124,22 +170,31 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .facts dt { color: var(--muted); font-size: 0.82rem; }
 .facts dd { margin: 0; font-family: var(--mono); font-size: 0.81rem; word-break: break-all; }
 
-/* how it works */
-.flow { display: grid; gap: 9px; margin: 12px 0 18px; }
-.flow-step { display: grid; grid-template-columns: 26px 1fr; gap: 12px; align-items: center; }
-.flow-step b {
-  width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft);
-  color: var(--accent); display: grid; place-items: center; font-size: 0.8rem;
+/* ── image-first steps section ───────────────────────────────────── */
+.steps-section { margin: 34px 0 8px; }
+.section-title { text-align: center; font-size: 1.35rem; margin: 0 0 20px; }
+.steps-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
 }
-.flow-step span { color: var(--muted); font-size: 0.88rem; }
-.flow-step code, .hint code { color: var(--accent); font-family: var(--mono); font-size: 0.85em; }
-
-.trust { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.trust h3 { margin: 0 0 6px; font-size: 0.9rem; }
-.trust div:first-child h3 { color: var(--ok); }
-.trust div:last-child h3 { color: var(--warn); }
-.trust ul { margin: 0; padding-left: 17px; color: var(--muted); font-size: 0.82rem; }
-.trust li { margin-bottom: 3px; }
+.step-card { margin: 0; position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); }
+.step-card img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; transition: transform 0.35s; }
+.step-card:hover img { transform: scale(1.06); }
+.step-card figcaption {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  padding: 22px 12px 10px; font-size: 0.86rem; font-weight: 600; text-align: center;
+  background: linear-gradient(transparent, rgba(11, 12, 16, 0.92));
+}
+.step-card figcaption b {
+  display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px;
+  border-radius: 50%; background: var(--accent); color: white; font-size: 0.72rem;
+}
+.chips-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin: 20px 0 6px; }
+.chip {
+  font-size: 0.84rem; color: var(--text); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px;
+}
+.dev-details { margin: 18px auto 0; max-width: 620px; }
+.dev-details summary { text-align: center; }
 
 /* code */
 pre {
@@ -157,6 +212,7 @@ footer .fine { font-size: 0.76rem; opacity: 0.75; }
 
 @media (max-width: 640px) {
   h1 { font-size: 1.7rem; }
-  .pay-grid, .trust { grid-template-columns: 1fr; }
+  .pay-grid { grid-template-columns: 1fr; }
+  .steps-grid { grid-template-columns: 1fr 1fr; }
   .qr-wrap img { margin: 0 auto; }
 }

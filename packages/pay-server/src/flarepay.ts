@@ -77,6 +77,17 @@ export class FlarePay {
     return [...this.charges.values()].sort((a, b) => Number(b.id) - Number(a.id));
   }
 
+  private rateCache?: { price: number; timestamp: number; fetchedAt: number };
+
+  /** Live XRP/USD from FTSOv2, cached for 20s (feeds update every ~1.8s anyway). */
+  async rate(): Promise<{ symbol: string; price: number; timestamp: number }> {
+    if (!this.rateCache || Date.now() - this.rateCache.fetchedAt > 20_000) {
+      const feed = await this.kit.ftso.read("XRP/USD");
+      this.rateCache = { price: feed.price, timestamp: feed.timestamp, fetchedAt: Date.now() };
+    }
+    return { symbol: "XRP/USD", price: this.rateCache.price, timestamp: this.rateCache.timestamp };
+  }
+
   get(id: string): ChargeView | undefined {
     return this.charges.get(id);
   }

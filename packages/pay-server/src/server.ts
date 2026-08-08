@@ -158,6 +158,10 @@ const server = createServer(async (req, res) => {
       });
     }
 
+    if (route === "GET /api/rate") {
+      return send(res, 200, await flarePay.rate());
+    }
+
     if (route === "GET /api/health") {
       return send(res, 200, {
         ok: true,

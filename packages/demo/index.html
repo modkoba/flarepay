@@ -5,28 +5,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>FlarePay — accept XRP, settle on Flare with proofs</title>
     <meta name="description" content="Accept native XRP payments with programmable settlement on Flare. No custody, no processor, every receipt is a cryptographic proof." />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta property="og:title" content="FlarePay — accept XRP like Stripe, minus the trust" />
+    <meta property="og:description" content="Native XRP payments settled on Flare by cryptographic proof. Every payment is a leaf on a living Merkle tree." />
+    <meta property="og:image" content="/og.jpg" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <main class="shell">
-      <header class="hero">
+    <!-- ── 3D hero: the living Merkle tree ─────────────────────── -->
+    <section class="hero3d" id="hero3d">
+      <canvas id="heroCanvas" aria-hidden="true"></canvas>
+      <div class="hero3d-content">
         <div class="brand">Flare<span>Pay</span></div>
         <h1>Accept XRP like Stripe.<br />Except nobody holds your money.</h1>
-        <p class="tagline">
-          Native XRP payments, settled on Flare by cryptographic proof — no custodial
-          processor, no chargebacks, no EVM wallet for the payer.
-        </p>
+        <p class="tagline">Every payment is a leaf on this tree. Hover one — that's a real proof.</p>
+        <div class="hero3d-actions">
+          <a class="primary btn-link" href="#storeCard">Try the live checkout ↓</a>
+        </div>
         <div class="badges">
           <span class="badge">Coston2 + XRPL testnet</span>
           <span class="badge">FDC XRPPayment · FTSOv2</span>
           <span class="badge accent">Bounty 1 — Interoperable Asset Products</span>
         </div>
-      </header>
+      </div>
+      <div class="hero3d-status">
+        <span id="liveStatus">connecting…</span>
+        <span id="liveRate"></span>
+        <span class="hero3d-hint">the tree grows when a real FDC round finalizes</span>
+      </div>
+    </section>
+
+    <main class="shell">
 
       <!-- ── The store ─────────────────────────────────────────── -->
       <section class="card store" id="storeCard">
         <div class="product">
-          <div class="product-art">📊</div>
+          <div class="product-art"><img src="/report-tile.jpg" alt="Report cover: a glowing Merkle tree" /></div>
           <div class="product-info">
             <h2>XRP Market Intelligence</h2>
             <p>August 2026 edition · instant download</p>
@@ -37,9 +51,7 @@
           </div>
         </div>
         <button id="buyBtn" class="primary wide">Buy with XRP</button>
-        <p class="hint" id="storeHint">
-          Opens a charge on Flare, priced by FTSOv2 and payable from any XRPL wallet.
-        </p>
+        <p class="hint" id="storeHint">Any XRPL wallet. No sign-up.</p>
       </section>
 
       <!-- ── Checkout ──────────────────────────────────────────── -->
@@ -91,63 +103,45 @@
         </p>
       </section>
 
-      <!-- ── How it works ──────────────────────────────────────── -->
-      <section class="card how">
-        <h2>How a payment settles</h2>
-        <div class="flow">
-          <div class="flow-step"><b>1</b><span>Charge opened on Flare, priced by <code>FTSOv2</code></span></div>
-          <div class="flow-step"><b>2</b><span>Payer sends native XRP with the charge's destination tag</span></div>
-          <div class="flow-step"><b>3</b><span><code>FDC XRPPayment</code> attests it — tag, amount, sender</span></div>
-          <div class="flow-step"><b>4</b><span><code>FlarePayEscrow.settle(proof)</code> releases the goods</span></div>
+      <!-- ── How it works: 4 images, 12 words ──────────────────── -->
+      <section class="steps-section">
+        <h2 class="section-title">Four steps. Zero trust.</h2>
+        <div class="steps-grid">
+          <figure class="step-card">
+            <img src="/step-1.jpg" alt="Scan and pay with XRP" loading="lazy" />
+            <figcaption><b>1</b> Scan &amp; pay</figcaption>
+          </figure>
+          <figure class="step-card">
+            <img src="/step-2.jpg" alt="The destination tag routes the payment" loading="lazy" />
+            <figcaption><b>2</b> Tag routes it</figcaption>
+          </figure>
+          <figure class="step-card">
+            <img src="/step-3.jpg" alt="FDC proves the payment on Flare" loading="lazy" />
+            <figcaption><b>3</b> Flare proves it</figcaption>
+          </figure>
+          <figure class="step-card">
+            <img src="/step-4.jpg" alt="The escrow unlocks the goods" loading="lazy" />
+            <figcaption><b>4</b> Vault unlocks</figcaption>
+          </figure>
         </div>
-        <div class="trust">
-          <div>
-            <h3>Trustless</h3>
-            <ul>
-              <li>Payment existence, amount, tag (FDC proof, verified on-chain)</li>
-              <li>USD→XRP conversion (FTSOv2, pinned at charge time)</li>
-              <li>Release conditions (contract code, replay-guarded)</li>
-            </ul>
-          </div>
-          <div>
-            <h3>Not trusted</h3>
-            <ul>
-              <li>This server — it only relays proofs; anyone can submit them</li>
-              <li>Custody — funds go payer → merchant on XRPL, never through us</li>
-            </ul>
-          </div>
+        <div class="chips-row">
+          <span class="chip">🔒 0 custody</span>
+          <span class="chip">🧾 Proof receipts</span>
+          <span class="chip">↩️ No chargebacks</span>
+          <span class="chip">🤖 Agent-ready · x402</span>
         </div>
-      </section>
+        <details class="dev-details">
+          <summary>For developers &amp; AI agents</summary>
+          <pre><code>$ curl https://flarepay.demo/api/report
+HTTP/1.1 402 Payment Required        # pay 1.93 XRP, tag 1002 — any XRPL wallet
 
-      <!-- ── x402 ──────────────────────────────────────────────── -->
-      <section class="card code">
-        <h2>Same rail, for AI agents (x402)</h2>
-        <p class="hint">
-          Flare's own x402 guide is blocked on FXRP gaining EIP-3009. FlarePay settles a
-          <em>proof of a native XRP payment</em> instead — so it works today, and the
-          agent needs no EVM wallet and no gas.
-        </p>
-        <pre><code>$ curl https://flarepay.demo/api/report
-HTTP/1.1 402 Payment Required
-{ "accepts": [{ "scheme": "xrpl-payment", "payTo": "rBRX…K75i",
-                "destinationTag": 1002, "amount": "1.93", "asset": "XRP",
-                "settlement": "flare-fdc-xrppayment" }] }
-
-$ # agent pays from any XRPL wallet, then retries
 $ curl -H "X-Payment: 3" https://flarepay.demo/api/report
-HTTP/1.1 200 OK
-{ "title": "XRP Market Intelligence…",
-  "settlement": { "votingRound": 1419435, "settleTx": "0x8732…" } }</code></pre>
+HTTP/1.1 200 OK                      # released by on-chain proof, round 1419435</code></pre>
+        </details>
       </section>
 
       <footer>
-        <p>
-          Built on <b>FlareKit</b> — our open-source TypeScript SDK for Flare's enshrined
-          protocols (FDC · FTSOv2 · Secure Random), which powers every step above.
-        </p>
-        <p class="fine">
-          FDC voting rounds take ~90–180s. This demo shows real timing and never fakes it.
-        </p>
+        <p class="fine">Built on <b>FlareKit</b> · honest timing — a real FDC round takes ~2 min</p>
       </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>
