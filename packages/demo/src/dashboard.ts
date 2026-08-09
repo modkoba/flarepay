@@ -125,19 +125,36 @@ function renderKeys(keys: { label: string; createdAt: string; lastUsedAt: string
     : `<li><span class="feed-detail">no keys yet — generate one for the API / x402</span></li>`;
 }
 
+/** Single owner of the offline banner, so it can never get stuck on. */
+function setOffline(down: boolean): void {
+  $("#offline").classList.toggle("hidden", !down);
+}
+
 // ─── refresh loop ───────────────────────────────────────────────────
 async function refresh(): Promise<boolean> {
   if (!PLATFORM && !apiKey) return false;
   let overview: Overview;
   try {
     const res = await admin("/api/admin/overview");
-    if (res.status === 401) return false;
+    if (res.status === 401) {
+      // Expired/invalid session — NOT a server problem. Clear it and bounce to
+      // sign-in rather than leaving a misleading "unreachable" banner up.
+      setOffline(false);
+      if (PLATFORM) {
+        await supabase!.auth.signOut();
+        location.href = "/auth.html";
+      }
+      return false;
+    }
     overview = (await res.json()) as Overview;
-    $("#offline").classList.add("hidden");
-  } catch {
-    // The API is down. Say so — a signed-in merchant staring at a blank page
-    // has no idea whether it's their session, their data, or the server.
-    $("#offline").classList.remove("hidden");
+    setOffline(false);
+  } catch (err) {
+    // bearer() redirects and throws when there's no session at all; that's an
+    // auth path, not an outage, so don't blame the server for it.
+    if ((err as Error).message === "no session") return false;
+    // The API really is unreachable. Say so — a signed-in merchant staring at
+    // a blank page can't tell if it's their session, their data, or the server.
+    setOffline(true);
     return true; // keep polling; the banner explains the wait
   }
 
