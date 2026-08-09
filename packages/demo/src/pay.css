@@ -1,0 +1,86 @@
+/* FlarePay hosted checkout — a focused, single-purpose payment page.
+   Deliberately free of marketing chrome: the payer has one job here. */
+
+.pay-shell {
+  min-height: 100svh;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; padding: 32px 18px;
+}
+
+.pay-card {
+  width: 100%; max-width: 430px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px;
+  padding: 22px 24px;
+}
+
+.pay-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: 14px; margin-bottom: 16px; border-bottom: 1px solid var(--line);
+}
+.pay-brand { font-weight: 700; letter-spacing: 0.3px; }
+.pay-brand span { color: var(--accent); }
+.pay-secure { font-size: 0.72rem; color: var(--ok); }
+
+/* amount block */
+.pay-amount { text-align: center; display: flex; flex-direction: column; gap: 3px; margin-bottom: 18px; }
+.pay-usd { font-size: 2.1rem; font-weight: 700; line-height: 1.1; }
+.pay-xrp { font-family: var(--mono); font-size: 0.95rem; color: var(--accent); }
+.pay-desc { color: var(--text); font-size: 0.9rem; margin-top: 4px; }
+.pay-rate { color: var(--muted); font-size: 0.74rem; font-family: var(--mono); }
+
+/* qr */
+.pay-qr { text-align: center; margin-bottom: 16px; }
+.pay-qr img {
+  width: 186px; height: 186px; border-radius: 12px;
+  background: white; padding: 8px; display: block; margin: 0 auto;
+}
+.pay-hint { display: block; margin-top: 8px; font-size: 0.74rem; color: var(--muted); }
+
+/* fields */
+.pay-fields { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 0 0 12px; align-items: center; }
+.pay-fields dt { color: var(--muted); font-size: 0.76rem; }
+.pay-fields dd { margin: 0; display: flex; align-items: center; gap: 8px; min-width: 0; }
+.pay-fields code {
+  font-family: var(--mono); font-size: 0.76rem; color: var(--text);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;
+}
+.pay-fields code.tag { color: var(--accent); font-weight: 700; font-size: 0.95rem; }
+.pay-fields a { color: var(--accent); text-decoration: none; }
+.pay-fields a:hover { text-decoration: underline; }
+.copy {
+  flex: none; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line);
+  border-radius: 7px; padding: 3px 9px; font-size: 0.7rem; font-weight: 600; cursor: pointer;
+}
+.copy:hover { color: var(--text); border-color: var(--accent); }
+
+.pay-warn {
+  background: rgba(230, 165, 32, 0.1); border: 1px solid var(--warn); border-radius: 9px;
+  color: var(--warn); font-size: 0.76rem; padding: 8px 11px; margin: 0 0 14px;
+}
+
+/* progress inside the checkout */
+.pay-card .steps { margin-top: 16px; }
+.pay-card .steps li { padding: 9px 0; }
+.pay-card .steps b { font-size: 0.88rem; }
+.pay-card .steps span { font-size: 0.74rem; }
+
+.pay-foot {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line);
+  font-size: 0.74rem; color: var(--muted); font-family: var(--mono);
+}
+
+/* receipt */
+.receipt-mark {
+  width: 46px; height: 46px; margin: 0 auto 12px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 1.4rem; font-weight: 700;
+  background: rgba(47, 191, 113, 0.14); color: var(--ok);
+}
+.receipt-title { text-align: center; font-size: 1.3rem; margin: 0 0 4px; }
+.receipt-sub { text-align: center; color: var(--muted); font-size: 0.86rem; margin: 0 0 18px; }
+
+.pay-status { text-align: center; color: var(--muted); font-size: 0.9rem; margin: 0; }
+.pay-status.error { color: var(--accent); }
+
+.pay-legal { max-width: 430px; text-align: center; color: var(--muted); font-size: 0.74rem; }
+.pay-legal b { color: var(--text); }

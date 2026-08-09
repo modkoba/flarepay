@@ -55,55 +55,6 @@
         <p class="hint" id="storeHint">Any XRPL wallet. No sign-up.</p>
       </section>
 
-      <!-- ── Checkout ──────────────────────────────────────────── -->
-      <section class="card checkout hidden" id="checkoutCard">
-        <div class="checkout-head">
-          <h2>Pay <span id="payAmount">—</span> XRP</h2>
-          <div class="clock" id="clock">0:00</div>
-        </div>
-
-        <div class="pay-grid">
-          <div class="qr-wrap">
-            <img id="qrImage" alt="XRPL payment QR code" />
-            <span class="qr-note">scan with Xaman (testnet)</span>
-          </div>
-          <dl class="pay-facts">
-            <dt>Send to</dt>
-            <dd id="payTo">—</dd>
-            <dt>Destination tag</dt>
-            <dd id="payTag" class="highlight">—</dd>
-            <dt>Amount</dt>
-            <dd id="payDrops">—</dd>
-            <dt>Rate pinned</dt>
-            <dd id="payRate">—</dd>
-            <dt>Charge</dt>
-            <dd id="payCharge">—</dd>
-          </dl>
-        </div>
-
-        <button id="demoPayBtn" class="ghost wide">
-          Pay from the demo wallet (no wallet install needed)
-        </button>
-
-        <ol class="steps" id="steps">
-          <li data-step="paid_xrpl"><b>Payment lands on XRPL</b><span>~4 seconds</span><em></em></li>
-          <li data-step="attest"><b>FDC attests the payment</b><span>voting round — real protocol time, ~90–180s</span><em></em></li>
-          <li data-step="settle"><b>Escrow settles on Flare</b><span>proof + tag + FTSO price band verified on-chain</span><em></em></li>
-        </ol>
-        <p class="round-note hidden" id="roundNote"></p>
-      </section>
-
-      <!-- ── Receipt ───────────────────────────────────────────── -->
-      <section class="card receipt hidden" id="receiptCard">
-        <div class="verdict ok">✓ Paid — settled by proof on Flare</div>
-        <div class="unlocked" id="unlocked"></div>
-        <dl class="facts" id="receiptFacts"></dl>
-        <p class="hint">
-          This receipt is a Merkle proof against a finalized FDC round. It verifies
-          forever, by anyone — no trust in this server required.
-        </p>
-      </section>
-
       <!-- ── How it works: 4 images, 12 words ──────────────────── -->
       <section class="steps-section">
         <h2 class="section-title">Four steps. Zero trust.</h2>

@@ -273,7 +273,7 @@ function renderTable(charges: Charge[]) {
   $("#chargeRows").innerHTML = charges
     .map((c) => {
       const links = [
-        `<a href="/?charge=${c.id}" target="_blank" rel="noopener" title="hosted checkout / receipt">checkout</a>`,
+        `<a href="/pay.html?charge=${c.id}" target="_blank" rel="noopener" title="hosted checkout / receipt">checkout</a>`,
         c.xrplTxHash ? `<a href="${XRPL_EXPLORER}/transactions/${c.xrplTxHash}" target="_blank" rel="noopener">xrpl</a>` : "",
         c.settleTx ? `<a href="${EXPLORER}/tx/${c.settleTx}" target="_blank" rel="noopener">flare</a>` : "",
       ]
@@ -316,7 +316,7 @@ $("#createBtn").addEventListener("click", async () => {
     const charge = (await res.json()) as Charge & { error?: string };
     if (!res.ok) throw new Error(charge.error ?? `HTTP ${res.status}`);
     $("#createdBox").classList.remove("hidden");
-    ($("#createdLink") as HTMLInputElement).value = `${location.origin}/?charge=${charge.id}`;
+    ($("#createdLink") as HTMLInputElement).value = `${location.origin}/pay.html?charge=${charge.id}`;
     void refresh();
   } catch (err) {
     alert(`Charge failed: ${String(err)}`);

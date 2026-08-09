@@ -13,6 +13,7 @@ export default defineConfig({
         main: "index.html",
         dashboard: "dashboard.html",
         auth: "auth.html",
+        pay: "pay.html",
       },
     },
   },

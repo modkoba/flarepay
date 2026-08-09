@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FlarePay — secure checkout</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/pay.css" />
+  </head>
+  <body>
+    <main class="pay-shell">
+      <!-- ── loading / error ────────────────────────────────────── -->
+      <section class="pay-card" id="loadingCard">
+        <p class="pay-status" id="loadingText">Loading checkout…</p>
+      </section>
+
+      <!-- ── the checkout ───────────────────────────────────────── -->
+      <section class="pay-card hidden" id="payCard">
+        <header class="pay-head">
+          <span class="pay-brand">Flare<span>Pay</span></span>
+          <span class="pay-secure">Non-custodial checkout</span>
+        </header>
+
+        <div class="pay-amount">
+          <span class="pay-usd" id="payUsd">—</span>
+          <span class="pay-xrp"><b id="payAmount">—</b> XRP</span>
+          <span class="pay-desc" id="payDesc"></span>
+          <span class="pay-rate" id="payRate"></span>
+        </div>
+
+        <div class="pay-qr">
+          <img id="qrImage" alt="Scan to pay with an XRPL wallet" />
+          <span class="pay-hint">Scan with any XRPL wallet (testnet)</span>
+        </div>
+
+        <dl class="pay-fields">
+          <dt>Send to</dt>
+          <dd><code id="payTo">—</code><button class="copy" data-copy="payTo" title="Copy address">Copy</button></dd>
+          <dt>Destination tag</dt>
+          <dd><code class="tag" id="payTag">—</code><button class="copy" data-copy="payTag" title="Copy tag">Copy</button></dd>
+          <dt>Exact amount</dt>
+          <dd><code id="payDrops">—</code><button class="copy" data-copy="payAmount" title="Copy amount">Copy</button></dd>
+        </dl>
+
+        <p class="pay-warn">The destination tag is required — a payment without it can't be matched to this invoice.</p>
+
+        <button class="ghost wide" id="demoPayBtn">Pay from the demo wallet (testnet)</button>
+
+        <ol class="steps" id="steps">
+          <li data-step="paid_xrpl"><b>Payment lands on XRPL</b><span>~4 seconds</span><em></em></li>
+          <li data-step="attest"><b>Flare proves the payment</b><span>FDC voting round — ~90–180s of real protocol time</span><em></em></li>
+          <li data-step="settle"><b>Settled on Flare</b><span>proof verified on-chain, funds already with the merchant</span><em></em></li>
+        </ol>
+        <p class="round-note hidden" id="roundNote"></p>
+
+        <div class="pay-foot">
+          <span id="expiry"></span>
+          <span class="clock" id="clock">0:00</span>
+        </div>
+      </section>
+
+      <!-- ── receipt ────────────────────────────────────────────── -->
+      <section class="pay-card hidden" id="receiptCard">
+        <div class="receipt-mark">✓</div>
+        <h1 class="receipt-title">Payment settled</h1>
+        <p class="receipt-sub" id="receiptSub"></p>
+        <dl class="pay-fields" id="receiptFacts"></dl>
+        <p class="pay-hint">
+          This receipt is a Merkle proof against a finalized FDC round — anyone can verify it,
+          forever, without trusting this page.
+        </p>
+      </section>
+
+      <footer class="pay-legal">
+        Funds move payer → merchant directly on the XRP Ledger.
+        <b>FlarePay never holds your money.</b>
+      </footer>
+    </main>
+    <script type="module" src="/src/pay.ts"></script>
+  </body>
+</html>
