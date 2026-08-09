@@ -53,6 +53,7 @@ void (async () => {
   $("#loadingCard").classList.add("hidden");
   $("#payCard").classList.remove("hidden");
   renderInvoice(charge);
+  void setupWallets(charge);
   renderProgress(charge);
   if (charge.state === "paid") renderReceipt(charge);
   else {
@@ -93,6 +94,81 @@ for (const button of document.querySelectorAll<HTMLButtonElement>(".copy")) {
     button.textContent = "Copied";
     setTimeout(() => (button.textContent = original), 1200);
   });
+}
+
+/**
+ * Wallet payment options.
+ *
+ * XRPL browser extensions (GemWallet, Crossmark) can sign the payment in one
+ * click, with the destination tag filled in — the field payers most often get
+ * wrong when copying by hand. Xaman gets a deep link for mobile. The QR and
+ * manual fields above always remain, so a missing extension is never a
+ * dead end.
+ */
+async function setupWallets(c: ChargeView) {
+  const note = $("#walletNote");
+  const found: string[] = [];
+
+  // Xaman deep link works without any extension (mobile).
+  const xaman = $<HTMLAnchorElement>("#xamanLink");
+  xaman.href = `https://xumm.app/detect/request:${c.merchantAddress}?amount=${c.xrpAmount}&dt=${c.destinationTag}`;
+
+  // GemWallet — extension API is injected asynchronously, so this is awaited.
+  try {
+    const gem = await import("@gemwallet/api");
+    const installed = await gem.isInstalled();
+    if (installed.result.isInstalled) {
+      found.push("GemWallet");
+      const btn = $<HTMLButtonElement>("#gemPayBtn");
+      btn.classList.remove("hidden");
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        btn.textContent = "Confirm in GemWallet…";
+        try {
+          const res = await gem.sendPayment({
+            amount: c.xrpAmount,
+            destination: c.merchantAddress,
+            destinationTag: c.destinationTag,
+          });
+          btn.textContent = res.result?.hash ? "Payment sent ✓" : "Rejected in wallet";
+          if (!res.result?.hash) btn.disabled = false;
+        } catch (err) {
+          btn.textContent = `Wallet error: ${String(err)}`;
+          btn.disabled = false;
+        }
+      });
+    }
+  } catch {
+    /* extension absent or API unavailable — QR fallback stands */
+  }
+
+  // Crossmark injects a global; no bundled dependency needed.
+  const crossmark = (window as { crossmark?: { signAndSubmit(tx: unknown): Promise<unknown> } }).crossmark;
+  if (crossmark) {
+    found.push("Crossmark");
+    const btn = $<HTMLButtonElement>("#crossmarkPayBtn");
+    btn.classList.remove("hidden");
+    btn.addEventListener("click", async () => {
+      btn.disabled = true;
+      btn.textContent = "Confirm in Crossmark…";
+      try {
+        await crossmark.signAndSubmit({
+          TransactionType: "Payment",
+          Destination: c.merchantAddress,
+          Amount: c.drops,
+          DestinationTag: c.destinationTag,
+        });
+        btn.textContent = "Payment sent ✓";
+      } catch (err) {
+        btn.textContent = `Wallet error: ${String(err)}`;
+        btn.disabled = false;
+      }
+    });
+  }
+
+  note.textContent = found.length
+    ? `${found.join(" and ")} detected — the destination tag is filled in for you.`
+    : "No wallet extension detected. Scan the QR, use Xaman, or pay manually with the fields above.";
 }
 
 // ─── demo payment (testnet convenience for judges/reviewers) ────────

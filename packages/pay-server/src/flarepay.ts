@@ -77,6 +77,18 @@ export interface FlarePayConfig {
   explorerUrl: string;
 }
 
+export interface AssetOption {
+  code: string;
+  name: string;
+  network: string;
+  /** How a payment is matched to its charge on this chain. */
+  routing: "destination-tag" | "unique-address";
+  feed: string;
+  available: boolean;
+  /** Why it isn't available — shown verbatim in the UI. */
+  reason?: string;
+}
+
 export interface Stats {
   settledUsdCents: number;
   settledDrops: string;
@@ -151,6 +163,75 @@ export class FlarePay {
         : null,
       lastRound: paid.reduce<number | null>((max, c) => Math.max(max ?? 0, c.votingRound ?? 0) || max, null),
     };
+  }
+
+  private assetCache?: { assets: AssetOption[]; fetchedAt: number };
+
+  /**
+   * The payment menu, built from two independent facts:
+   *  1. can Flare's verifier attest this chain right now (live probe), and
+   *  2. can our escrow actually settle that proof shape.
+   *
+   * Both must hold. XRPL settles by destination tag (settleXrp); UTXO chains
+   * need address-matched settlement (settleUtxo) which escrow v2 adds — so
+   * DOGE/BTC are listed with an honest reason rather than hidden or faked.
+   */
+  async assets(): Promise<AssetOption[]> {
+    if (this.assetCache && Date.now() - this.assetCache.fetchedAt < 60_000) {
+      return this.assetCache.assets;
+    }
+
+    let capabilities: { type: string; chain: string; status: string; detail?: string }[] = [];
+    try {
+      capabilities = await this.kit.fdc.capabilities();
+    } catch {
+      /* verifier unreachable — fall through to "unknown" below */
+    }
+
+    const routeFor = (chain: string, type: string) =>
+      capabilities.find((c) => c.chain === chain && c.type === type);
+
+    const assets: AssetOption[] = [
+      {
+        code: "XRP",
+        name: "XRP",
+        network: "XRP Ledger (testnet)",
+        routing: "destination-tag",
+        feed: "XRP/USD",
+        available: routeFor("XRP", "XRPPayment")?.status === "available",
+        reason:
+          routeFor("XRP", "XRPPayment")?.status === "available"
+            ? undefined
+            : "Flare's XRP verifier is not responding right now",
+      },
+      {
+        code: "DOGE",
+        name: "Dogecoin",
+        network: "Dogecoin (testnet)",
+        routing: "unique-address",
+        feed: "DOGE/USD",
+        available: false,
+        reason:
+          routeFor("DOGE", "Payment")?.status === "available"
+            ? "verifier ready — awaiting escrow v2 (address-matched settlement)"
+            : "Flare's DOGE verifier is not responding right now",
+      },
+      {
+        code: "BTC",
+        name: "Bitcoin",
+        network: "Bitcoin (testnet)",
+        routing: "unique-address",
+        feed: "BTC/USD",
+        available: false,
+        reason:
+          routeFor("BTC", "Payment")?.status === "available"
+            ? "verifier ready — awaiting escrow v2 (address-matched settlement)"
+            : "Flare's BTC verifier is down upstream — enables automatically when it returns",
+      },
+    ];
+
+    this.assetCache = { assets, fetchedAt: Date.now() };
+    return assets;
   }
 
   private rateCache?: { price: number; timestamp: number; fetchedAt: number };

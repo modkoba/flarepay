@@ -85,6 +85,8 @@
               <div class="stack">
                 <input id="newUsd" type="number" min="0.01" step="0.01" placeholder="Amount (USD)" />
                 <input id="newDesc" placeholder="Description" />
+                <select id="newAsset" aria-label="Payment asset"></select>
+                <p class="hint" id="assetNote"></p>
                 <button class="primary" id="createBtn">Create charge</button>
                 <div class="created hidden" id="createdBox">
                   <span class="hint">Checkout link</span>

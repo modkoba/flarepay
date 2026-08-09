@@ -48,6 +48,9 @@ importers:
       '@flarekit/sdk':
         specifier: workspace:*
         version: link:../sdk
+      '@gemwallet/api':
+        specifier: ^3.8.0
+        version: 3.8.0
       '@supabase/supabase-js':
         specifier: ^2.112.2
         version: 2.112.2
@@ -419,6 +422,9 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@gemwallet/api@3.8.0':
+    resolution: {integrity: sha512-hZ6XC0mVm3Q54cgonrzk6tHS/wUMjtPHyqsqbtlnNGPouCR7OIfEDo5Y802qLZ5ah6PskhsK0DouVnwUykEM8Q==}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     resolution: {integrity: sha512-oTXEIha4SsuXdTA4Iyskj0kpdx2yVXdhd75c2v3xGrHFfVMsbhTPZU/nMPL4sWKo4pBHm3aucLaqGlF696dTyQ==}
@@ -1037,6 +1043,8 @@ snapshots:
 
   '@esbuild/win32-x64@0.28.1':
     optional: true
+
+  '@gemwallet/api@3.8.0': {}
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true

@@ -288,6 +288,8 @@ const server = createServer(async (req, res) => {
     }
 
     // ── Public: telemetry ───────────────────────────────────────────
+    if (route === "GET /api/assets") return send(res, 200, { assets: await flarePay.assets() });
+
     if (route === "GET /api/rate") return send(res, 200, await flarePay.rate());
 
     if (route === "GET /api/health") {
@@ -364,6 +366,14 @@ const server = createServer(async (req, res) => {
         const body = await readBody(req);
         const usdCents = Math.round(Number(body.usd ?? 0) * 100) || Number(body.usdCents ?? 0);
         if (!usdCents || usdCents < 1) return send(res, 400, { error: "usd amount required" });
+
+        // Refuse assets we cannot actually settle — a charge nobody can pay
+        // off is worse than an honest error.
+        const asset = String(body.asset ?? "XRP").toUpperCase();
+        const option = (await flarePay.assets()).find((a) => a.code === asset);
+        if (!option) return send(res, 400, { error: `unknown asset ${asset}` });
+        if (!option.available) return send(res, 409, { error: `${asset} not available — ${option.reason}` });
+
         const merchantXrplAddress = await merchantAddressFor(account.id);
         const charge = await flarePay.createCharge(usdCents, String(body.metadata ?? "Charge"), {
           accountId: account.id,

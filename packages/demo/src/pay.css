@@ -53,6 +53,11 @@
 }
 .copy:hover { color: var(--text); border-color: var(--accent); }
 
+/* wallet payment options */
+.wallets { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.wallets .btn-link { text-align: center; text-decoration: none; display: block; padding: 11px 16px; }
+.wallet-note { margin: 2px 0 0; font-size: 0.74rem; color: var(--muted); text-align: center; }
+
 .pay-warn {
   background: rgba(230, 165, 32, 0.1); border: 1px solid var(--warn); border-radius: 9px;
   color: var(--warn); font-size: 0.76rem; padding: 8px 11px; margin: 0 0 14px;

@@ -63,6 +63,42 @@ $("#keySave").addEventListener("click", async () => {
   else $("#gateError").textContent = "That key was rejected — check the server logs for the current one.";
 });
 
+/**
+ * Payment assets come from the server's live capability probe, so the menu
+ * reflects what Flare's verifiers and our escrow can actually do right now —
+ * unavailable coins stay visible with their reason instead of disappearing.
+ */
+async function loadAssets(): Promise<void> {
+  try {
+    const res = await fetch(`${API}/api/assets`);
+    const { assets } = (await res.json()) as {
+      assets: { code: string; name: string; network: string; available: boolean; reason?: string }[];
+    };
+    const select = $<HTMLSelectElement>("#newAsset");
+    select.innerHTML = assets
+      .map(
+        (a) =>
+          `<option value="${a.code}" ${a.available ? "" : "disabled"}>${a.name} — ${a.network}${
+            a.available ? "" : " · unavailable"
+          }</option>`
+      )
+      .join("");
+    const first = assets.find((a) => a.available);
+    if (first) select.value = first.code;
+    const note = () => {
+      const chosen = assets.find((a) => a.code === select.value);
+      $("#assetNote").textContent = chosen?.available
+        ? `settles by ${chosen.code === "XRP" ? "destination tag" : "deposit address"} · priced via FTSOv2`
+        : (chosen?.reason ?? "");
+    };
+    select.addEventListener("change", note);
+    note();
+  } catch {
+    $("#assetNote").textContent = "asset menu unavailable";
+  }
+}
+void loadAssets();
+
 $("#signOut").addEventListener("click", async () => {
   await supabase?.auth.signOut();
   location.href = "/auth.html";
@@ -312,7 +348,8 @@ $("#createBtn").addEventListener("click", async () => {
   btn.disabled = true;
   btn.textContent = "Opening on Flare…";
   try {
-    const res = await admin("/api/admin/charges", { method: "POST", body: JSON.stringify({ usd, metadata }) });
+    const asset = ($("#newAsset") as HTMLSelectElement).value || "XRP";
+    const res = await admin("/api/admin/charges", { method: "POST", body: JSON.stringify({ usd, metadata, asset }) });
     const charge = (await res.json()) as Charge & { error?: string };
     if (!res.ok) throw new Error(charge.error ?? `HTTP ${res.status}`);
     $("#createdBox").classList.remove("hidden");
