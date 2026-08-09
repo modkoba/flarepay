@@ -133,8 +133,12 @@ async function refresh(): Promise<boolean> {
     const res = await admin("/api/admin/overview");
     if (res.status === 401) return false;
     overview = (await res.json()) as Overview;
+    $("#offline").classList.add("hidden");
   } catch {
-    return true; // transient — keep the last render
+    // The API is down. Say so — a signed-in merchant staring at a blank page
+    // has no idea whether it's their session, their data, or the server.
+    $("#offline").classList.remove("hidden");
+    return true; // keep polling; the banner explains the wait
   }
 
   $("#gate").classList.add("hidden");

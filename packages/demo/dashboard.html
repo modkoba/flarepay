@@ -21,6 +21,12 @@
         <button class="ghost chip-btn hidden" id="signOut">Sign out</button>
       </header>
 
+      <!-- ── offline banner ────────────────────────────────────── -->
+      <div class="offline hidden" id="offline">
+        <b>FlarePay server unreachable.</b>
+        <span>Start it with <code>pnpm --filter @flarekit/pay-server start</code> — retrying automatically.</span>
+      </div>
+
       <!-- ── API key gate ──────────────────────────────────────── -->
       <section class="card gate" id="gate">
         <h2>Connect</h2>

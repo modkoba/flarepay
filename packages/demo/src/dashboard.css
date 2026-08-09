@@ -13,6 +13,15 @@
 .gate { max-width: 480px; margin: 12vh auto; }
 .err { color: var(--accent); }
 
+/* offline banner — never leave the page blank when the API is down */
+.offline {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;
+  background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 11px;
+  padding: 12px 16px; margin-bottom: 14px; font-size: 0.86rem;
+}
+.offline span { color: var(--muted); }
+.offline code { font-family: var(--mono); color: var(--accent); font-size: 0.82rem; }
+
 /* tiles */
 .tiles { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.4fr; gap: 12px; margin-bottom: 14px; }
 .tile {
