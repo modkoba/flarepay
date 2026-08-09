@@ -168,11 +168,11 @@ function rateLimited(req: IncomingMessage, kind: keyof typeof LIMITS = "read", c
   return false;
 }
 
-async function merchantAddressFor(accountId: string): Promise<string> {
+/** Null when the merchant hasn't finished onboarding (no payout address yet). */
+async function merchantAddressFor(accountId: string): Promise<string | null> {
   if (!PLATFORM || accountId === demoAccountId) return xrplWallets.merchant.address;
   const payout = await db!.getPayout(accountId, "XRP");
-  if (!payout) throw new Error("no XRP payout address configured — set one in the dashboard first");
-  return payout.value;
+  return payout?.value ?? null;
 }
 
 // ─── server ───────────────────────────────────────────────────────────
@@ -374,7 +374,14 @@ const server = createServer(async (req, res) => {
         if (!option) return send(res, 400, { error: `unknown asset ${asset}` });
         if (!option.available) return send(res, 409, { error: `${asset} not available — ${option.reason}` });
 
+        // Onboarding, not a server fault: there is nowhere for the money to go.
         const merchantXrplAddress = await merchantAddressFor(account.id);
+        if (!merchantXrplAddress) {
+          return send(res, 400, {
+            error: "Add the payout address where you want to receive XRP before creating charges.",
+            needsPayout: true,
+          });
+        }
         const charge = await flarePay.createCharge(usdCents, String(body.metadata ?? "Charge"), {
           accountId: account.id,
           merchantXrplAddress,

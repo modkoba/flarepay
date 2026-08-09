@@ -146,8 +146,36 @@ async function loadMe(): Promise<void> {
         ? `✓ validated by the Flare verifier`
         : "validated by Flare's FDC verifier before saving";
     }
+    setOnboarded(Boolean(me.payout));
     renderKeys(me.keys);
   }
+}
+
+/**
+ * Onboarding gate: a merchant with no payout address has nowhere to be paid,
+ * so charge creation is blocked with an explanation up front rather than an
+ * error after the fact.
+ */
+function setOnboarded(hasPayout: boolean): void {
+  $("#onboardCard").classList.toggle("hidden", hasPayout);
+  const create = $<HTMLButtonElement>("#createBtn");
+  create.disabled = !hasPayout;
+  create.title = hasPayout ? "" : "Add your payout address first";
+}
+
+/** Validate + save a payout address; returns true when accepted. */
+async function savePayout(address: string, infoEl: HTMLElement): Promise<boolean> {
+  infoEl.textContent = "asking the Flare verifier…";
+  const res = await admin("/api/me/payout", { method: "PUT", body: JSON.stringify({ address }) });
+  const data = (await res.json()) as { error?: string };
+  if (!res.ok) {
+    infoEl.textContent = `✗ ${data.error ?? "rejected"}`;
+    return false;
+  }
+  infoEl.textContent = "✓ validated by the Flare verifier";
+  ($("#payoutAddr") as HTMLInputElement).value = address;
+  setOnboarded(true);
+  return true;
 }
 
 function renderKeys(keys: { label: string; createdAt: string; lastUsedAt: string | null }[]) {
@@ -350,7 +378,12 @@ $("#createBtn").addEventListener("click", async () => {
   try {
     const asset = ($("#newAsset") as HTMLSelectElement).value || "XRP";
     const res = await admin("/api/admin/charges", { method: "POST", body: JSON.stringify({ usd, metadata, asset }) });
-    const charge = (await res.json()) as Charge & { error?: string };
+    const charge = (await res.json()) as Charge & { error?: string; needsPayout?: boolean };
+    if (charge.needsPayout) {
+      setOnboarded(false);
+      $("#onboardCard").scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     if (!res.ok) throw new Error(charge.error ?? `HTTP ${res.status}`);
     $("#createdBox").classList.remove("hidden");
     ($("#createdLink") as HTMLInputElement).value = `${location.origin}/pay.html?charge=${charge.id}`;
@@ -387,11 +420,14 @@ $("#webhookTest").addEventListener("click", async () => {
 });
 
 $("#payoutSave").addEventListener("click", async () => {
-  const address = ($("#payoutAddr") as HTMLInputElement).value.trim();
-  $("#payoutInfo").textContent = "asking the Flare verifier…";
-  const res = await admin("/api/me/payout", { method: "PUT", body: JSON.stringify({ address }) });
-  const data = (await res.json()) as { error?: string };
-  $("#payoutInfo").textContent = res.ok ? "✓ validated by the Flare verifier" : `✗ ${data.error}`;
+  await savePayout(($("#payoutAddr") as HTMLInputElement).value.trim(), $("#payoutInfo"));
+});
+
+$("#onboardSave").addEventListener("click", async () => {
+  const btn = $<HTMLButtonElement>("#onboardSave");
+  btn.disabled = true;
+  await savePayout(($("#onboardAddr") as HTMLInputElement).value.trim(), $("#onboardInfo"));
+  btn.disabled = false;
 });
 
 $("#keyCreate").addEventListener("click", async () => {

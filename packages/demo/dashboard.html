@@ -33,6 +33,22 @@
       </section>
 
       <div class="hidden" id="dashMain">
+        <!-- ── onboarding: where does the money go? ─────────────── -->
+        <section class="onboard hidden" id="onboardCard">
+          <div class="onboard-copy">
+            <h2>One step left — where should payments land?</h2>
+            <p>
+              Add the XRP Ledger address you want to be paid at. FlarePay never holds funds:
+              customers pay this address directly, and Flare proves it on-chain.
+            </p>
+          </div>
+          <div class="onboard-form">
+            <input id="onboardAddr" spellcheck="false" placeholder="rBRXic… (your XRPL address)" />
+            <button class="primary" id="onboardSave">Validate &amp; start accepting</button>
+            <p class="hint" id="onboardInfo">checked against Flare's FDC verifier — free, instant</p>
+          </div>
+        </section>
+
         <!-- ── stat tiles ──────────────────────────────────────── -->
         <section class="tiles">
           <div class="tile hero-tile">
