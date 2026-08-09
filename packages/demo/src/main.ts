@@ -137,8 +137,9 @@ void (async () => {
     const res = await fetch(`${API}/api/public-stats`);
     const stats = (await res.json()) as { settledCount: number; settledXrp: string };
     watchCounter($("#statSettled"), stats.settledCount);
+    $("#statSettledLabel").textContent = stats.settledCount === 1 ? "payment settled" : "payments settled";
     watchCounter($("#statXrp"), Number(stats.settledXrp) / 1000);
-    watchCounter($("#statFinality"), 124);
+    watchCounter($("#statFinality"), 160); // measured end-to-end, BENCHMARK.md
   } catch {
     $("#statSettled").textContent = "—";
   }

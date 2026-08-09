@@ -9,6 +9,9 @@
     <meta property="og:title" content="FlarePay — accept crypto like Stripe, minus the trust" />
     <meta property="og:description" content="Native crypto payments settled on Flare by cryptographic proof. Zero custody, zero chargebacks, 0% of revenue." />
     <meta property="og:image" content="/og.jpg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
@@ -16,7 +19,7 @@
     <nav class="nav">
       <a class="brand" href="/">Flare<span>Pay</span></a>
       <div class="nav-links">
-        <a href="#live">Live</a>
+        <a href="#live">Try it</a>
         <a href="#coins">Coins</a>
         <a href="#product">Product</a>
         <a href="#pricing">Pricing</a>
@@ -96,9 +99,9 @@
 
       <!-- ── live counters ─────────────────────────────────────── -->
       <section class="trustbar reveal">
-        <div><b data-count id="statSettled">0</b><span>payments settled</span></div>
+        <div><b data-count id="statSettled">0</b><span id="statSettledLabel">payments settled</span></div>
         <div><b data-count data-decimals="2" id="statXrp">0</b><span>XRP delivered</span></div>
-        <div><b data-count data-suffix="s" id="statFinality">124</b><span>median finality</span></div>
+        <div><b data-count data-suffix="s" id="statFinality">160s</b><span>to settlement, measured</span></div>
         <div><b>0</b><span>chargebacks, ever</span></div>
       </section>
 
@@ -168,7 +171,7 @@
               <div class="receipt-line"><span>settleTx</span><code>0xc348b088…c5e08a27</code></div>
               <div class="receipt-line"><span>votingRound</span><code>1,420,734</code></div>
               <div class="receipt-line"><span>signature</span><code>sha256=9f2a…</code></div>
-              <div class="receipt-seal">verified on-chain</div>
+              <a class="receipt-seal" href="https://coston2-explorer.flare.network/address/0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD" target="_blank" rel="noopener">verified on-chain — view contract</a>
             </div>
           </article>
         </div>
