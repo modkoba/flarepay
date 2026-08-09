@@ -63,6 +63,8 @@ $("#keySave").addEventListener("click", async () => {
   else $("#gateError").textContent = "That key was rejected — check the server logs for the current one.";
 });
 
+$("#offlineRetry").addEventListener("click", () => void refresh());
+
 $("#signOut").addEventListener("click", async () => {
   await supabase?.auth.signOut();
   location.href = "/auth.html";
@@ -125,9 +127,14 @@ function renderKeys(keys: { label: string; createdAt: string; lastUsedAt: string
     : `<li><span class="feed-detail">no keys yet — generate one for the API / x402</span></li>`;
 }
 
-/** Single owner of the offline banner, so it can never get stuck on. */
-function setOffline(down: boolean): void {
+/**
+ * Single owner of the offline banner, so it can never get stuck on.
+ * `reason` is shown verbatim — a banner that can't say why it appeared is
+ * impossible to act on (and impossible to support remotely).
+ */
+function setOffline(down: boolean, reason = ""): void {
   $("#offline").classList.toggle("hidden", !down);
+  if (down) $("#offlineReason").textContent = reason;
 }
 
 // ─── refresh loop ───────────────────────────────────────────────────
@@ -146,6 +153,12 @@ async function refresh(): Promise<boolean> {
       }
       return false;
     }
+    if (!res.ok) {
+      // Reached something, but it isn't the API (e.g. Vite proxies a dead
+      // target as 500). Surface the status rather than a blanket "offline".
+      setOffline(true, `API responded HTTP ${res.status} — is the pay-server running?`);
+      return true;
+    }
     overview = (await res.json()) as Overview;
     setOffline(false);
   } catch (err) {
@@ -154,7 +167,7 @@ async function refresh(): Promise<boolean> {
     if ((err as Error).message === "no session") return false;
     // The API really is unreachable. Say so — a signed-in merchant staring at
     // a blank page can't tell if it's their session, their data, or the server.
-    setOffline(true);
+    setOffline(true, `${(err as Error).message} (${API}/api/admin/overview)`);
     return true; // keep polling; the banner explains the wait
   }
 

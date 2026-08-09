@@ -25,6 +25,8 @@
       <div class="offline hidden" id="offline">
         <b>FlarePay server unreachable.</b>
         <span>Start it with <code>pnpm --filter @flarekit/pay-server start</code> — retrying automatically.</span>
+        <code class="offline-reason" id="offlineReason"></code>
+        <button class="ghost chip-btn" id="offlineRetry">Retry now</button>
       </div>
 
       <!-- ── API key gate ──────────────────────────────────────── -->

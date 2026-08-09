@@ -21,6 +21,8 @@
 }
 .offline span { color: var(--muted); }
 .offline code { font-family: var(--mono); color: var(--accent); font-size: 0.82rem; }
+.offline-reason { width: 100%; color: var(--muted) !important; font-size: 0.76rem; word-break: break-all; }
+.offline button { margin-left: auto; }
 
 /* tiles */
 .tiles { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.4fr; gap: 12px; margin-bottom: 14px; }
