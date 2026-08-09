@@ -3,60 +3,101 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlarePay — accept XRP, settle on Flare with proofs</title>
-    <meta name="description" content="Accept native XRP payments with programmable settlement on Flare. No custody, no processor, every receipt is a cryptographic proof." />
+    <title>FlarePay — accept crypto, settle with proofs on Flare</title>
+    <meta name="description" content="Accept native XRP and more with programmable settlement on Flare. No custody, no chargebacks, 0% of your revenue — every payment carries an on-chain proof." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta property="og:title" content="FlarePay — accept XRP like Stripe, minus the trust" />
-    <meta property="og:description" content="Native XRP payments settled on Flare by cryptographic proof. Every payment is a leaf on a living Merkle tree." />
+    <meta property="og:title" content="FlarePay — accept crypto like Stripe, minus the trust" />
+    <meta property="og:description" content="Native crypto payments settled on Flare by cryptographic proof. Zero custody, zero chargebacks, 0% of revenue." />
     <meta property="og:image" content="/og.jpg" />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <!-- ── 3D hero: the living Merkle tree ─────────────────────── -->
+    <!-- ── nav ─────────────────────────────────────────────────── -->
+    <nav class="nav">
+      <a class="brand" href="/">Flare<span>Pay</span></a>
+      <div class="nav-links">
+        <a href="#coins">Coins</a>
+        <a href="#product">Product</a>
+        <a href="#pricing">Pricing</a>
+        <a href="#developers">Developers</a>
+      </div>
+      <div class="nav-cta">
+        <a class="nav-ghost" href="/auth.html">Sign in</a>
+        <a class="primary btn-link" href="/auth.html">Start accepting</a>
+      </div>
+    </nav>
+
+    <!-- ── hero: the living Merkle tree ────────────────────────── -->
     <section class="hero3d" id="hero3d">
       <canvas id="heroCanvas" aria-hidden="true"></canvas>
       <div class="hero3d-content">
-        <div class="brand">Flare<span>Pay</span></div>
-        <h1>Accept XRP like Stripe.<br />Except nobody holds your money.</h1>
+        <h1>Accept crypto like Stripe.<br />Except nobody holds your money.</h1>
         <p class="tagline">Every payment is a leaf on this tree. Hover one — that's a real proof.</p>
         <div class="hero3d-actions">
-          <a class="primary btn-link" href="#storeCard">Try the live checkout ↓</a>
+          <a class="primary btn-link" href="/auth.html">Start accepting →</a>
+          <a class="ghost btn-link" href="#product">See how it works</a>
         </div>
         <div class="badges">
-          <span class="badge">Coston2 + XRPL testnet</span>
-          <span class="badge">FDC XRPPayment · FTSOv2</span>
-          <span class="badge accent">Bounty 1 — Interoperable Asset Products</span>
+          <span class="badge">0% of your revenue</span>
+          <span class="badge">No custody, ever</span>
+          <span class="badge accent">Proof-settled on Flare</span>
         </div>
       </div>
       <div class="hero3d-status">
         <span id="liveStatus">connecting…</span>
         <span id="liveRate"></span>
         <span class="hero3d-hint">the tree grows when a real FDC round finalizes</span>
-        <a class="dash-link" href="/dashboard.html">Merchant dashboard →</a>
       </div>
     </section>
 
     <main class="shell">
-
-      <!-- ── The store ─────────────────────────────────────────── -->
-      <section class="card store" id="storeCard">
-        <div class="product">
-          <div class="product-art"><img src="/report-tile.jpg" alt="Report cover: a glowing Merkle tree" /></div>
-          <div class="product-info">
-            <h2>XRP Market Intelligence</h2>
-            <p>August 2026 edition · instant download</p>
-            <div class="price">
-              <strong>$2.00</strong>
-              <span id="priceHint">≈ — XRP <em>live FTSOv2 rate</em></span>
-            </div>
-          </div>
-        </div>
-        <button id="buyBtn" class="primary wide">Buy with XRP</button>
-        <p class="hint" id="storeHint">Any XRPL wallet. No sign-up.</p>
+      <!-- ── live trust bar ────────────────────────────────────── -->
+      <section class="trustbar">
+        <div><b id="statSettled">—</b><span>payments settled</span></div>
+        <div><b id="statXrp">—</b><span>XRP delivered</span></div>
+        <div><b>~2 min</b><span>to on-chain finality</span></div>
+        <div><b>0</b><span>chargebacks, structurally</span></div>
       </section>
 
-      <!-- ── How it works: 4 images, 12 words ──────────────────── -->
-      <section class="steps-section">
+      <!-- ── coins: driven by live capability probes ───────────── -->
+      <section class="section" id="coins">
+        <h2 class="section-title">One integration. Many chains.</h2>
+        <p class="section-sub">Status below is probed live from Flare's verifiers — not a roadmap slide.</p>
+        <div class="coin-grid" id="coinGrid"></div>
+        <p class="section-foot">
+          Adding a chain is a table entry, not a rewrite — Flare's Data Connector proves them all.
+        </p>
+      </section>
+
+      <!-- ── product pillars ───────────────────────────────────── -->
+      <section class="section" id="product">
+        <h2 class="section-title">Everything you need to get paid.</h2>
+        <div class="feature-grid">
+          <article class="feature">
+            <img src="/feat-checkout.jpg" alt="Hosted checkout" loading="lazy" />
+            <h3>Hosted checkout</h3>
+            <p>Send a link. QR, wallet buttons, live rate — done.</p>
+          </article>
+          <article class="feature">
+            <img src="/feat-dashboard.jpg" alt="Merchant dashboard" loading="lazy" />
+            <h3>Merchant dashboard</h3>
+            <p>Revenue, settlement times, every charge traceable on-chain.</p>
+          </article>
+          <article class="feature">
+            <img src="/feat-api.jpg" alt="API and AI agents" loading="lazy" />
+            <h3>API &amp; AI agents</h3>
+            <p>REST keys plus x402 — agents pay with no wallet, no gas.</p>
+          </article>
+          <article class="feature">
+            <img src="/feat-receipt.jpg" alt="Proof receipts" loading="lazy" />
+            <h3>Proof receipts</h3>
+            <p>Signed webhooks. Receipts anyone can verify, forever.</p>
+          </article>
+        </div>
+      </section>
+
+      <!-- ── how it works ──────────────────────────────────────── -->
+      <section class="section">
         <h2 class="section-title">Four steps. Zero trust.</h2>
         <div class="steps-grid">
           <figure class="step-card">
@@ -76,24 +117,83 @@
             <figcaption><b>4</b> Vault unlocks</figcaption>
           </figure>
         </div>
-        <div class="chips-row">
-          <span class="chip">🔒 0 custody</span>
-          <span class="chip">🧾 Proof receipts</span>
-          <span class="chip">↩️ No chargebacks</span>
-          <span class="chip">🤖 Agent-ready · x402</span>
-        </div>
-        <details class="dev-details">
-          <summary>For developers &amp; AI agents</summary>
-          <pre><code>$ curl https://flarepay.demo/api/report
-HTTP/1.1 402 Payment Required        # pay 1.93 XRP, tag 1002 — any XRPL wallet
+      </section>
 
-$ curl -H "X-Payment: 3" https://flarepay.demo/api/report
-HTTP/1.1 200 OK                      # released by on-chain proof, round 1419435</code></pre>
-        </details>
+      <!-- ── pricing ───────────────────────────────────────────── -->
+      <section class="section" id="pricing">
+        <h2 class="section-title">You keep 100%.</h2>
+        <div class="price-compare">
+          <div class="price-card muted-card">
+            <span class="price-label">Card processors</span>
+            <span class="price-big">1–3%</span>
+            <ul>
+              <li>+ fixed fee per charge</li>
+              <li>funds held days</li>
+              <li>chargebacks &amp; reversals</li>
+            </ul>
+          </div>
+          <div class="price-card hero-card">
+            <span class="price-label">FlarePay</span>
+            <span class="price-big">0%</span>
+            <ul>
+              <li>you pay network cost only</li>
+              <li>funds land instantly, direct</li>
+              <li>proof-settled, irreversible</li>
+            </ul>
+          </div>
+        </div>
+        <p class="section-foot">Cost per payment is one FDC attestation plus gas — cents, not percentages.</p>
+      </section>
+
+      <!-- ── developers ────────────────────────────────────────── -->
+      <section class="section" id="developers">
+        <h2 class="section-title">Built for developers.</h2>
+        <div class="dev-grid">
+          <pre><code>// 1. create a charge
+POST /api/admin/charges
+{ "usd": 2.00, "asset": "XRP" }
+→ { id, xrpAmount, destinationTag, checkoutUrl }</code></pre>
+          <pre><code>// 2. get paid — signed webhook
+X-FlarePay-Signature: sha256=…
+{ "event": "charge.paid",
+  "charge": { "votingRound": 1420734, "settleTx": "0x…" } }</code></pre>
+          <pre><code>// 3. or let an AI agent pay (x402)
+$ curl -H "X-Payment: 16" /api/report
+HTTP/1.1 200 OK   # released by on-chain proof</code></pre>
+        </div>
+        <p class="section-foot">
+          Powered by <b>FlareKit</b>, our open-source SDK for Flare's enshrined protocols.
+        </p>
+      </section>
+
+      <!-- ── trust ─────────────────────────────────────────────── -->
+      <section class="section">
+        <h2 class="section-title">Why it can't rug you.</h2>
+        <div class="chips-row">
+          <span class="chip">🔒 Funds never touch us</span>
+          <span class="chip">🧾 Merkle-proof receipts</span>
+          <span class="chip">↩️ No reversals</span>
+          <span class="chip">🌐 Anyone can settle a proof</span>
+          <span class="chip">⛓️ Open contract on Flare</span>
+        </div>
+        <p class="section-foot">
+          A malicious FlarePay could stall a settlement. It could never take your money —
+          payments go payer → merchant on the source chain, and proofs are permissionless.
+        </p>
+      </section>
+
+      <!-- ── CTA ───────────────────────────────────────────────── -->
+      <section class="cta">
+        <h2>Start accepting in about two minutes.</h2>
+        <p>Sign up, paste your payout address, send a payment link.</p>
+        <a class="primary btn-link" href="/auth.html">Create your account →</a>
       </section>
 
       <footer>
-        <p class="fine">Built on <b>FlareKit</b> · honest timing — a real FDC round takes ~2 min</p>
+        <p class="fine">
+          FlarePay · testnet (Coston2 + XRPL) · honest timing — a real FDC round takes ~2 min ·
+          <a href="/dashboard.html">Dashboard</a>
+        </p>
       </footer>
     </main>
     <script type="module" src="/src/main.ts"></script>

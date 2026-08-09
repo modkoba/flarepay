@@ -292,6 +292,18 @@ const server = createServer(async (req, res) => {
 
     if (route === "GET /api/rate") return send(res, 200, await flarePay.rate());
 
+    /** Aggregate, non-identifying totals for the public landing page. */
+    if (route === "GET /api/public-stats") {
+      const all = flarePay.list();
+      const paid = all.filter((c) => c.state === "paid");
+      return send(res, 200, {
+        settledCount: paid.length,
+        settledXrp: (paid.reduce((sum, c) => sum + BigInt(c.drops), 0n) / 1000n).toString(),
+        lastRound: paid.reduce((max, c) => Math.max(max, c.votingRound ?? 0), 0) || null,
+        escrow: deployments.coston2.FlarePayEscrow,
+      });
+    }
+
     if (route === "GET /api/health") {
       return send(res, 200, {
         ok: true,
