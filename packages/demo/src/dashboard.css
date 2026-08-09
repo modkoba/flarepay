@@ -13,17 +13,6 @@
 .gate { max-width: 480px; margin: 12vh auto; }
 .err { color: var(--accent); }
 
-/* offline banner — never leave the page blank when the API is down */
-.offline {
-  display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;
-  background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 11px;
-  padding: 12px 16px; margin-bottom: 14px; font-size: 0.86rem;
-}
-.offline span { color: var(--muted); }
-.offline code { font-family: var(--mono); color: var(--accent); font-size: 0.82rem; }
-.offline-reason { width: 100%; color: var(--muted) !important; font-size: 0.76rem; word-break: break-all; }
-.offline button { margin-left: auto; }
-
 /* tiles */
 .tiles { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1.4fr; gap: 12px; margin-bottom: 14px; }
 .tile {
@@ -80,6 +69,8 @@
 .state-expired { color: var(--muted); background: rgba(148, 155, 169, 0.1); }
 
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ok); animation: pulse 1.6s ease-in-out infinite; }
+/* quietly dim while polling fails — the data on screen is simply last-known */
+.live-dot.stale { background: var(--muted); animation: none; }
 
 /* side column */
 .stack { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }

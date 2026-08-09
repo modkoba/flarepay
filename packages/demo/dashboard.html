@@ -21,14 +21,6 @@
         <button class="ghost chip-btn hidden" id="signOut">Sign out</button>
       </header>
 
-      <!-- ── offline banner ────────────────────────────────────── -->
-      <div class="offline hidden" id="offline">
-        <b>FlarePay server unreachable.</b>
-        <span>Start it with <code>pnpm --filter @flarekit/pay-server start</code> — retrying automatically.</span>
-        <code class="offline-reason" id="offlineReason"></code>
-        <button class="ghost chip-btn" id="offlineRetry">Retry now</button>
-      </div>
-
       <!-- ── API key gate ──────────────────────────────────────── -->
       <section class="card gate" id="gate">
         <h2>Connect</h2>
@@ -73,7 +65,7 @@
             <section class="card">
               <div class="card-head">
                 <h2>Charges</h2>
-                <span class="live-dot" id="liveDot" title="auto-refreshing"></span>
+                <span class="live-dot" id="liveDot" title="live — auto-refreshing"></span>
               </div>
               <div class="table-wrap">
                 <table class="charges-table">

@@ -63,8 +63,6 @@ $("#keySave").addEventListener("click", async () => {
   else $("#gateError").textContent = "That key was rejected — check the server logs for the current one.";
 });
 
-$("#offlineRetry").addEventListener("click", () => void refresh());
-
 $("#signOut").addEventListener("click", async () => {
   await supabase?.auth.signOut();
   location.href = "/auth.html";
@@ -128,13 +126,14 @@ function renderKeys(keys: { label: string; createdAt: string; lastUsedAt: string
 }
 
 /**
- * Single owner of the offline banner, so it can never get stuck on.
- * `reason` is shown verbatim — a banner that can't say why it appeared is
- * impossible to act on (and impossible to support remotely).
+ * Connection status lives in the existing live-dot next to "Charges" — green
+ * when polling succeeds, dim when it doesn't. No banner: the dashboard keeps
+ * showing the last known data, which is more useful than an interruption.
  */
-function setOffline(down: boolean, reason = ""): void {
-  $("#offline").classList.toggle("hidden", !down);
-  if (down) $("#offlineReason").textContent = reason;
+function setConnected(connected: boolean, reason = ""): void {
+  const dot = $("#liveDot");
+  dot.classList.toggle("stale", !connected);
+  dot.title = connected ? "live — auto-refreshing" : `reconnecting… ${reason}`;
 }
 
 // ─── refresh loop ───────────────────────────────────────────────────
@@ -144,9 +143,8 @@ async function refresh(): Promise<boolean> {
   try {
     const res = await admin("/api/admin/overview");
     if (res.status === 401) {
-      // Expired/invalid session — NOT a server problem. Clear it and bounce to
-      // sign-in rather than leaving a misleading "unreachable" banner up.
-      setOffline(false);
+      // Expired/invalid session — not a server problem. Clear it and bounce
+      // to sign-in.
       if (PLATFORM) {
         await supabase!.auth.signOut();
         location.href = "/auth.html";
@@ -154,21 +152,17 @@ async function refresh(): Promise<boolean> {
       return false;
     }
     if (!res.ok) {
-      // Reached something, but it isn't the API (e.g. Vite proxies a dead
-      // target as 500). Surface the status rather than a blanket "offline".
-      setOffline(true, `API responded HTTP ${res.status} — is the pay-server running?`);
+      setConnected(false, `HTTP ${res.status}`);
       return true;
     }
     overview = (await res.json()) as Overview;
-    setOffline(false);
+    setConnected(true);
   } catch (err) {
     // bearer() redirects and throws when there's no session at all; that's an
-    // auth path, not an outage, so don't blame the server for it.
+    // auth path, not an outage.
     if ((err as Error).message === "no session") return false;
-    // The API really is unreachable. Say so — a signed-in merchant staring at
-    // a blank page can't tell if it's their session, their data, or the server.
-    setOffline(true, `${(err as Error).message} (${API}/api/admin/overview)`);
-    return true; // keep polling; the banner explains the wait
+    setConnected(false, (err as Error).message);
+    return true; // keep polling quietly; last-known data stays on screen
   }
 
   $("#gate").classList.add("hidden");
@@ -398,7 +392,10 @@ void (async () => {
       location.href = "/auth.html";
       return;
     }
+    // Show the dashboard shell immediately. A signed-in merchant should never
+    // face a blank page just because the first poll hasn't landed (or failed).
     $("#gate").classList.add("hidden");
+    $("#dashMain").classList.remove("hidden");
     await refresh();
   } else if (apiKey) {
     await refresh();
