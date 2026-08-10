@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlarePay — merchant dashboard</title>
+    <title>FlarePay — dashboard</title>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/src/style.css" />
     <link rel="stylesheet" href="/src/dashboard.css" />
@@ -52,7 +52,7 @@
         <!-- ── stat tiles ──────────────────────────────────────── -->
         <section class="tiles">
           <div class="tile hero-tile">
-            <span class="tile-label">Settled revenue</span>
+            <span class="tile-label">Settled</span>
             <span class="tile-value" id="statRevenue">—</span>
             <span class="tile-sub" id="statRevenueXrp"></span>
           </div>
@@ -60,7 +60,7 @@
           <div class="tile"><span class="tile-label">Pending</span><span class="tile-value warn" id="statPending">—</span></div>
           <div class="tile"><span class="tile-label">Failed</span><span class="tile-value bad" id="statFailed">—</span></div>
           <div class="tile">
-            <span class="tile-label">Avg. settle time</span>
+            <span class="tile-label">Avg. proof time</span>
             <span class="tile-value" id="statAvg">—</span>
             <span class="tile-sub">payment → on-chain proof</span>
           </div>
@@ -71,7 +71,7 @@
             <!-- ── revenue chart ─────────────────────────────────── -->
             <section class="card">
               <div class="card-head">
-                <h2>Settled charges — USD</h2>
+                <h2>Settled requests — USD</h2>
                 <span class="hint" id="chartEmpty"></span>
               </div>
               <div class="chart-wrap" id="chart"></div>
@@ -80,7 +80,7 @@
             <!-- ── charges table ─────────────────────────────────── -->
             <section class="card">
               <div class="card-head">
-                <h2>Charges</h2>
+                <h2>Payments</h2>
                 <span class="live-dot" id="liveDot" title="live — auto-refreshing"></span>
               </div>
               <div class="table-wrap">
@@ -99,8 +99,8 @@
             <section class="card">
               <h2>New charge</h2>
               <div class="stack">
-                <input id="newUsd" type="number" min="0.01" step="0.01" placeholder="Amount (USD)" />
-                <input id="newDesc" placeholder="Description" />
+                <input id="newUsd" type="number" min="0.01" step="0.01" placeholder="Price per request (USD)" />
+                <input id="newDesc" placeholder="What it unlocks" />
                 <select id="newAsset" aria-label="Payment asset"></select>
                 <p class="hint" id="assetNote"></p>
                 <button class="primary" id="createBtn">Create charge</button>
@@ -138,6 +138,26 @@
             </section>
 
             <!-- ── webhook ───────────────────────────────────────── -->
+
+            <section class="card" id="x402Card">
+              <div class="card-head">
+                <h2>x402 endpoint</h2>
+                <span class="hint">agent-payable</span>
+              </div>
+              <p class="hint">Unpaid calls get a 402 with a payment quote. Retry with the charge id.</p>
+              <div class="stack">
+                <div class="row">
+                  <input id="x402Url" readonly />
+                  <button class="ghost" id="x402Copy">Copy</button>
+                </div>
+                <pre class="x402-snippet"><code>curl <span id="x402Curl">…</span>
+<span class="c-dim">→ 402 { "usd": …, "payTo": "r…", "tag": N }</span>
+
+curl -H "X-Payment: &lt;charge id&gt;" <span id="x402Curl2">…</span>
+<span class="c-dim">→ 200 released by on-chain proof</span></code></pre>
+              </div>
+            </section>
+
             <section class="card">
               <h2>Webhook</h2>
               <div class="stack">

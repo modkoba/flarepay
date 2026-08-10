@@ -105,3 +105,10 @@
 .chip-btn { padding: 4px 12px; font-size: 0.78rem; border-radius: 999px; }
 .mono-wrap { font-family: var(--mono); word-break: break-all; }
 .stack select { width: 100%; }
+
+/* x402 endpoint card */
+.x402-snippet {
+  margin: 0; font-size: 0.72rem; line-height: 1.7;
+  white-space: pre-wrap; word-break: break-all;
+}
+.x402-snippet .c-dim { color: var(--muted); }

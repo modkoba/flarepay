@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlarePay — accept crypto, settle with proofs</title>
-    <meta name="description" content="Accept native crypto with programmable settlement on Flare. No custody, no chargebacks, 0% of your revenue — every payment carries an on-chain proof." />
+    <title>FlarePay — x402 payments in native XRP, no wallet required</title>
+    <meta name="description" content="AI agents pay in native XRP. No EVM wallet, no token standard, no gas — settlement is a cryptographic proof on Flare, not a signed authorization." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta property="og:title" content="FlarePay — accept crypto like Stripe, minus the trust" />
-    <meta property="og:description" content="Native crypto payments settled on Flare by cryptographic proof. Zero custody, zero chargebacks, 0% of revenue." />
+    <meta property="og:title" content="FlarePay — settle by proof, not by signature" />
+    <meta property="og:description" content="x402 payments in native XRP. No EVM wallet, no EIP-3009, no bridge. Proven on Flare." />
     <meta property="og:image" content="/og.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -19,25 +19,26 @@
     <nav class="nav">
       <a class="brand" href="/">Flare<span>Pay</span></a>
       <div class="nav-links">
-        <a href="#live">Try it</a>
+        <a href="#why">Why it works</a>
+        <a href="#flow">Agent flow</a>
         <a href="#coins">Coins</a>
-        <a href="#product">Product</a>
         <a href="#pricing">Pricing</a>
-        <a href="#developers">Developers</a>
       </div>
-      <a class="primary btn-link nav-primary" href="/auth.html">Start accepting</a>
+      <a class="primary btn-link nav-primary" href="/auth.html">Get API keys</a>
     </nav>
 
     <!-- ── hero ────────────────────────────────────────────────── -->
     <section class="hero3d" id="hero3d">
       <canvas id="heroCanvas" aria-hidden="true"></canvas>
       <div class="hero3d-content">
-        <h1>Get paid in crypto.<br />Hold none of it.</h1>
+        <span class="eyebrow">x402 · agent-native payments</span>
+        <h1>Settle by proof,<br />not by signature.</h1>
         <p class="tagline">
-          Payments settle to you directly, proven on Flare. Every leaf on this tree is a real proof.
+          Your agent pays in native XRP. No EVM wallet, no token standard, no gas.
+          Flare proves the payment; the contract releases the goods.
         </p>
         <div class="hero3d-actions">
-          <a class="primary btn-link" href="/auth.html">Start accepting</a>
+          <a class="primary btn-link" href="/auth.html">Get API keys</a>
         </div>
       </div>
       <div class="hero3d-status">
@@ -48,39 +49,59 @@
     </section>
 
     <main class="shell">
-      <!-- ── interactive: price it yourself ────────────────────── -->
-      <section class="section reveal" id="live">
-        <h2 class="section-title">Type an amount. Watch Flare price it.</h2>
-        <div class="live-demo">
-          <div class="live-input">
-            <label for="calcUsd">You charge</label>
-            <div class="amount-field">
-              <span>$</span>
-              <input id="calcUsd" type="number" min="0.5" step="0.5" value="25" inputmode="decimal" />
+      <!-- ── why it works: the structural argument ─────────────── -->
+      <section class="section reveal" id="why">
+        <h2 class="section-title">Every other rail needs a signature.</h2>
+        <div class="versus">
+          <article class="vs-card">
+            <span class="vs-label">Standard x402</span>
+            <ul class="vs-list">
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>Asset must be an ERC-20 with EIP-3009</li>
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>Payer needs an EVM wallet and key</li>
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>Native XRP has to be bridged or wrapped</li>
+            </ul>
+          </article>
+          <article class="vs-card vs-win">
+            <span class="vs-label">FlarePay</span>
+            <ul class="vs-list">
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Native XRP, no token standard at all</li>
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Pay from any wallet or exchange</li>
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>The payment <em>is</em> the authorization</li>
+            </ul>
+          </article>
+        </div>
+        <blockquote class="doc-quote">
+          <p>Flare's own x402 guide ships with a mock token — “FXRP will be supported once it implements the required EIP-3009 standard.”</p>
+          <a href="https://dev.flare.network/fxrp/token-interactions/x402-payments" target="_blank" rel="noopener">dev.flare.network — x402 Payment Protocol ↗</a>
+        </blockquote>
+        <p class="section-foot">
+          We never needed EIP-3009. Settlement is an <b>FDC proof</b>, not an authorization — so native XRP works today.
+        </p>
+      </section>
+
+      <!-- ── the agent flow, played live ───────────────────────── -->
+      <section class="section" id="flow">
+        <h2 class="section-title reveal">One charge. Either payer.</h2>
+        <div class="live-demo reveal">
+          <!-- agent: the 402 handshake -->
+          <div class="agent-term">
+            <div class="term-head">
+              <span class="term-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <span class="term-title">agent — x402</span>
+              <button class="term-replay" id="replayBtn" type="button">Replay</button>
             </div>
-            <div class="amount-presets">
-              <button data-amount="5">$5</button>
-              <button data-amount="25">$25</button>
-              <button data-amount="100">$100</button>
-              <button data-amount="2500">$2,500</button>
-            </div>
-            <dl class="calc-facts">
-              <dt>Customer pays</dt><dd><b id="calcXrp">—</b> XRP</dd>
-              <dt>Live rate</dt><dd id="calcRate">—</dd>
-              <dt>Your fee</dt><dd class="zero" id="calcFee">$0.00</dd>
-              <dt>Card processor</dt><dd class="lost" id="calcCard">—</dd>
-            </dl>
+            <pre class="term-body" id="termBody"></pre>
           </div>
 
-          <!-- real checkout UI, not a picture of one -->
+          <!-- human: the same charge, paid with a QR -->
           <div class="live-preview">
             <div class="mock-checkout">
               <div class="mock-head">
                 <span class="mock-brand">Flare<span>Pay</span></span>
-                <span class="mock-secure">Non-custodial</span>
+                <span class="mock-secure">or a human pays</span>
               </div>
               <div class="mock-amount">
-                <span class="mock-usd" id="mockUsd">$25.00</span>
+                <span class="mock-usd" id="mockUsd">$0.25</span>
                 <span class="mock-xrp"><b id="mockXrp">—</b> XRP</span>
               </div>
               <div class="mock-qr" aria-hidden="true">
@@ -90,10 +111,37 @@
               <div class="mock-steps">
                 <div class="mock-step done"><i></i>Payment lands</div>
                 <div class="mock-step active"><i></i>Flare proves it</div>
-                <div class="mock-step"><i></i>Settled</div>
+                <div class="mock-step"><i></i>Released</div>
               </div>
             </div>
           </div>
+        </div>
+        <p class="section-foot">
+          Same charge, same proof, same settlement — whether the payer is software or a person.
+        </p>
+      </section>
+
+      <!-- ── price a call ──────────────────────────────────────── -->
+      <section class="section reveal" id="price-it">
+        <h2 class="section-title">Price a call. Watch Flare quote it.</h2>
+        <div class="live-input calc-wide">
+          <label for="calcUsd">Per request</label>
+          <div class="amount-field">
+            <span>$</span>
+            <input id="calcUsd" type="number" min="0.01" step="0.01" value="0.25" inputmode="decimal" />
+          </div>
+          <div class="amount-presets">
+            <button data-amount="0.01">$0.01</button>
+            <button data-amount="0.25">$0.25</button>
+            <button data-amount="2">$2</button>
+            <button data-amount="25">$25</button>
+          </div>
+          <dl class="calc-facts">
+            <dt>Agent pays</dt><dd><b id="calcXrp">—</b> XRP</dd>
+            <dt>Live rate</dt><dd id="calcRate">—</dd>
+            <dt>Our cut</dt><dd class="zero" id="calcFee">$0.00</dd>
+            <dt>Card processor</dt><dd class="lost" id="calcCard">—</dd>
+          </dl>
         </div>
       </section>
 
@@ -107,28 +155,27 @@
 
       <!-- ── coins ─────────────────────────────────────────────── -->
       <section class="section reveal" id="coins">
-        <h2 class="section-title">One integration. Many chains.</h2>
+        <h2 class="section-title">Chains that can't sign EVM transactions.</h2>
         <div class="coin-grid" id="coinGrid"></div>
       </section>
 
-      <!-- ── product: real UI ──────────────────────────────────── -->
+      <!-- ── product ───────────────────────────────────────────── -->
       <section class="section" id="product">
-        <h2 class="section-title reveal">The whole payment stack.</h2>
-
+        <h2 class="section-title reveal">Everything the rail needs.</h2>
         <div class="bento">
           <article class="bento-cell wide reveal">
             <div class="cell-copy">
               <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-                <rect x="3" y="4" width="18" height="16" rx="3" /><path d="M3 9h18M7 14h5" />
+                <path d="M8 6l-5 6 5 6M16 6l5 6-5 6" />
               </svg>
-              <h3>Dashboard</h3>
-              <p>Revenue, settlement time, every charge traceable on-chain.</p>
+              <h3>Agent API</h3>
+              <p>HTTP 402 with a payment quote. Retry with the charge id, get your 200.</p>
             </div>
             <div class="cell-visual mock-dash">
               <div class="mock-tiles">
-                <div><span>Settled</span><b>$1,284.00</b></div>
-                <div><span>Paid</span><b class="ok">37</b></div>
-                <div><span>Pending</span><b class="warn">2</b></div>
+                <div><span>Endpoint</span><b class="tiny">/api/report</b></div>
+                <div><span>Status</span><b class="warn">402</b></div>
+                <div><span>After proof</span><b class="ok">200</b></div>
               </div>
               <svg class="mock-chart" viewBox="0 0 300 70" preserveAspectRatio="none" aria-hidden="true">
                 <g fill="var(--accent)">
@@ -148,15 +195,15 @@
               <path d="M4 7h16M4 12h16M4 17h9" /><circle cx="19" cy="17" r="2.5" />
             </svg>
             <h3>Hosted checkout</h3>
-            <p>Send a link. QR, wallet buttons, live rate.</p>
+            <p>For human payers. QR, wallet buttons, live rate.</p>
           </article>
 
           <article class="bento-cell reveal">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
-              <path d="M8 6l-5 6 5 6M16 6l5 6-5 6" />
+              <rect x="3" y="4" width="18" height="16" rx="3" /><path d="M3 9h18M7 14h5" />
             </svg>
-            <h3>API &amp; agents</h3>
-            <p>REST keys and x402 — agents pay with no wallet, no gas.</p>
+            <h3>Dashboard</h3>
+            <p>Keys, endpoints, and every settlement traceable on-chain.</p>
           </article>
 
           <article class="bento-cell wide reveal">
@@ -168,8 +215,8 @@
               <p>Signed webhooks. Receipts anyone can verify, forever.</p>
             </div>
             <div class="cell-visual mock-receipt">
-              <div class="receipt-line"><span>settleTx</span><code>0xc348b088…c5e08a27</code></div>
-              <div class="receipt-line"><span>votingRound</span><code>1,420,734</code></div>
+              <div class="receipt-line"><span>settleTx</span><code>0xc94a2c47…7ef9c319</code></div>
+              <div class="receipt-line"><span>votingRound</span><code>1,421,448</code></div>
               <div class="receipt-line"><span>signature</span><code>sha256=9f2a…</code></div>
               <a class="receipt-seal" href="https://coston2-explorer.flare.network/address/0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD" target="_blank" rel="noopener">verified on-chain — view contract</a>
             </div>
@@ -185,7 +232,7 @@
             <span class="price-label">Card processors</span>
             <span class="price-big">1–3%</span>
             <ul>
-              <li>funds held for days</li>
+              <li>micropayments are impossible</li>
               <li>chargebacks and reversals</li>
             </ul>
           </div>
@@ -193,41 +240,10 @@
             <span class="price-label">FlarePay</span>
             <span class="price-big">0%</span>
             <ul>
-              <li>paid direct, in seconds</li>
+              <li>cent-sized calls actually work</li>
               <li>network cost only, in cents</li>
             </ul>
           </div>
-        </div>
-      </section>
-
-      <!-- ── developers ────────────────────────────────────────── -->
-      <section class="section reveal" id="developers">
-        <h2 class="section-title">Two calls to revenue.</h2>
-        <div class="code-window">
-          <div class="code-tabs" role="tablist">
-            <button class="code-tab is-active" data-tab="create">Create a charge</button>
-            <button class="code-tab" data-tab="webhook">Get the webhook</button>
-            <button class="code-tab" data-tab="agent">Let an agent pay</button>
-          </div>
-          <pre class="code-body" data-panel="create"><code>curl -X POST https://flarepay.app/api/admin/charges \
-  -H "Authorization: Bearer fpk_live_…" \
-  -d '{ "usd": 25.00, "asset": "XRP" }'
-
-<span class="c-dim">→ { "id": "1042", "xrpAmount": "24.01",
-    "destinationTag": 1042, "checkoutUrl": "…" }</span></code></pre>
-          <pre class="code-body hidden" data-panel="webhook"><code>POST /your/webhook
-X-FlarePay-Signature: sha256=9f2a…
-
-{ "event": "charge.paid",
-  "charge": { "id": "1042",
-    "votingRound": 1420734,
-    "settleTx": "0xc348b088…" } }</code></pre>
-          <pre class="code-body hidden" data-panel="agent"><code>curl https://flarepay.app/api/report
-<span class="c-dim">→ HTTP 402 Payment Required
-  { "payTo": "rBRX…", "destinationTag": 1042 }</span>
-
-curl -H "X-Payment: 1042" https://flarepay.app/api/report
-<span class="c-dim">→ HTTP 200 OK — released by on-chain proof</span></code></pre>
         </div>
       </section>
 
@@ -254,15 +270,15 @@ curl -H "X-Payment: 1042" https://flarepay.app/api/report
               <circle cx="12" cy="12" r="8.5" /><path d="M12 7v5l3.5 2" />
             </svg>
             <h4>Honest timing</h4>
-            <p>~2 minutes to finality. We never fake a spinner.</p>
+            <p>~160s to finality, measured. We never fake a spinner.</p>
           </div>
         </div>
       </section>
 
       <!-- ── CTA ───────────────────────────────────────────────── -->
       <section class="cta reveal">
-        <h2>Start accepting in two minutes.</h2>
-        <a class="primary btn-link" href="/auth.html">Create your account</a>
+        <h2>Let your agents pay for themselves.</h2>
+        <a class="primary btn-link" href="/auth.html">Get API keys</a>
       </section>
 
       <footer>

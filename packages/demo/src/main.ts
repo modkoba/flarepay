@@ -6,9 +6,8 @@
  * server's capability probes, and the counters show genuinely settled
  * payments. All degrade quietly if the API is unreachable.
  *
- * Motion follows the research: reveals are subtle and one-shot, never
- * calling attention to themselves, and are disabled under
- * prefers-reduced-motion.
+ * The agent terminal replays a real x402 handshake — the round and tx hash
+ * in it are from an actual settlement, not invented.
  */
 
 const API = import.meta.env.VITE_PAY_API ?? "/pay-api";
@@ -79,7 +78,72 @@ function watchCounter(el: HTMLElement, value: number) {
   observer.observe(el);
 }
 
-// ─── live pricing calculator (the Wise pattern: try before you sign up)
+// ─── the x402 handshake, replayed ───────────────────────────────────
+// Round and tx hash below are from the live settlement in commit a511c28.
+const SCRIPT: { text: string; cls?: string; pause?: number }[] = [
+  { text: "$ curl https://flarepay.app/api/report", cls: "t-cmd" },
+  { text: "", pause: 120 },
+  { text: "HTTP/1.1 402 Payment Required", cls: "t-402" },
+  { text: '{ "usd": 0.25, "xrp": "0.2401",', cls: "t-dim" },
+  { text: '  "payTo": "rELmQ3…Hok4GrW", "tag": 1042 }', cls: "t-dim", pause: 420 },
+  { text: "", pause: 120 },
+  { text: "$ agent pays 0.2401 XRP  tag 1042", cls: "t-cmd" },
+  { text: "  no EVM wallet · no gas · native XRP", cls: "t-dim" },
+  { text: "  tesSUCCESS  A9094B09…97E6D0CFE", cls: "t-ok", pause: 420 },
+  { text: "", pause: 120 },
+  { text: "… Flare Data Connector proving payment", cls: "t-dim" },
+  { text: "  round 1,421,448 finalized", cls: "t-dim", pause: 420 },
+  { text: "", pause: 120 },
+  { text: '$ curl -H "X-Payment: 1042" …/api/report', cls: "t-cmd" },
+  { text: "HTTP/1.1 200 OK", cls: "t-ok" },
+  { text: '"XRP Market Intelligence — August 2026"', cls: "t-dim" },
+];
+
+let playing = false;
+
+async function playTerminal() {
+  const body = $("#termBody");
+  if (playing || !body) return;
+  playing = true;
+  body.textContent = "";
+
+  const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+  for (const line of SCRIPT) {
+    const el = document.createElement("div");
+    if (line.cls) el.className = line.cls;
+    body.appendChild(el);
+
+    if (reduced) {
+      el.textContent = line.text;
+      continue;
+    }
+    for (const char of line.text) {
+      el.textContent += char;
+      await sleep(9);
+    }
+    await sleep(line.pause ?? 160);
+  }
+
+  body.appendChild(Object.assign(document.createElement("span"), { className: "t-caret" }));
+  playing = false;
+}
+
+const term = $("#termBody");
+if (term) {
+  const observer = new IntersectionObserver(
+    (entries) => {
+      if (!entries[0].isIntersecting) return;
+      void playTerminal();
+      observer.disconnect();
+    },
+    { threshold: 0.4 }
+  );
+  observer.observe(term);
+  $("#replayBtn")?.addEventListener("click", () => void playTerminal());
+}
+
+// ─── live pricing calculator ────────────────────────────────────────
 let rate = 0;
 
 function renderCalc() {
@@ -89,9 +153,11 @@ function renderCalc() {
 
   $("#calcXrp").textContent = xrpText;
   $("#calcRate").textContent = rate ? `$${rate.toFixed(4)} / XRP · FTSOv2` : "—";
-  $("#calcCard").textContent = `−$${(usd * 0.029 + 0.3).toFixed(2)} at 2.9% + 30¢`;
+  // Below ~$0.35 the fixed 30¢ leg alone exceeds the charge — that's the point.
+  const cardFee = usd * 0.029 + 0.3;
+  $("#calcCard").textContent =
+    cardFee >= usd ? `−$${cardFee.toFixed(2)} — more than the charge` : `−$${cardFee.toFixed(2)} at 2.9% + 30¢`;
 
-  // the mock checkout mirrors the input, so the product is the illustration
   $("#mockUsd").textContent = `$${usd.toFixed(2)}`;
   $("#mockXrp").textContent = xrpText;
 }
@@ -118,7 +184,7 @@ void (async () => {
 /** A static but plausible QR block — decoration, not a scannable code. */
 (() => {
   const cells: string[] = [];
-  let seed = 1420734;
+  let seed = 1421448;
   const rand = () => ((seed = (seed * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff);
   for (let y = 0; y < 21; y++) {
     for (let x = 0; x < 21; x++) {
@@ -161,6 +227,7 @@ void (async () => {
             <span class="coin-code">${a.code}</span>
             <span class="coin-state">${a.available ? "live" : "soon"}</span>
           </div>
+          ${a.name !== a.code ? `<span class="coin-name">${a.name}</span>` : ""}
           <span class="coin-net">${a.network}</span>
           <span class="coin-note">${
             a.available
@@ -174,14 +241,3 @@ void (async () => {
     grid.innerHTML = "";
   }
 })();
-
-// ─── code tabs ──────────────────────────────────────────────────────
-for (const tab of document.querySelectorAll<HTMLButtonElement>(".code-tab")) {
-  tab.addEventListener("click", () => {
-    for (const other of document.querySelectorAll(".code-tab")) other.classList.remove("is-active");
-    tab.classList.add("is-active");
-    for (const panel of document.querySelectorAll<HTMLElement>(".code-body")) {
-      panel.classList.toggle("hidden", panel.dataset.panel !== tab.dataset.tab);
-    }
-  });
-}

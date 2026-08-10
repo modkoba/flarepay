@@ -1,5 +1,5 @@
 /**
- * FlarePay merchant dashboard — live view over the admin API.
+ * FlarePay dashboard — live view over the admin API.
  *
  * Auth: Bearer API key (printed by the server on boot), kept in localStorage.
  * Everything auto-refreshes every 3s; the chart is a single-series magnitude
@@ -401,6 +401,22 @@ $("#copyLink").addEventListener("click", () => {
   $("#copyLink").textContent = "Copied ✓";
   setTimeout(() => ($("#copyLink").textContent = "Copy"), 1500);
 });
+
+// ─── x402 endpoint card: the URL an agent actually calls ────────────
+{
+  // API is either an absolute base (prod) or a same-origin proxy path (dev) —
+  // keep the proxy prefix, or the URL 404s locally.
+  const shown = API.startsWith("http") ? `${API}/api/report` : `${location.origin}${API}/api/report`;
+  ($("#x402Url") as HTMLInputElement).value = shown;
+  $("#x402Curl").textContent = shown;
+  $("#x402Curl2").textContent = shown;
+
+  $("#x402Copy").addEventListener("click", () => {
+    navigator.clipboard.writeText(shown);
+    $("#x402Copy").textContent = "Copied ✓";
+    setTimeout(() => ($("#x402Copy").textContent = "Copy"), 1500);
+  });
+}
 
 $("#webhookSave").addEventListener("click", async () => {
   const url = ($("#webhookUrl") as HTMLInputElement).value.trim();

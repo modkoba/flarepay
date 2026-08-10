@@ -15,7 +15,7 @@ $("#toggleLink").addEventListener("click", () => {
   mode = mode === "login" ? "signup" : "login";
   $("#authTitle").textContent = mode === "login" ? "Welcome back" : "Create your account";
   $("#authHint").textContent =
-    mode === "login" ? "Sign in to your merchant dashboard." : "Accept XRP with proof-settled payouts in minutes.";
+    mode === "login" ? "Sign in to your dashboard." : "Let your agents pay in native XRP — proof-settled, non-custodial.";
   $("#submitBtn").textContent = mode === "login" ? "Sign in" : "Sign up";
   $("#toggleLine").firstChild!.textContent = mode === "login" ? "New merchant? " : "Already have an account? ";
   $("#toggleLink").textContent = mode === "login" ? "Create an account" : "Sign in";
