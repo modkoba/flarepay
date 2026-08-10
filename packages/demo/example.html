@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kelvin API — weather data, paid in XRP</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/example.css" />
+  </head>
+  <body class="kelvin">
+    <nav class="nav">
+      <span class="brand kelvin-brand">Kelvin<span>API</span></span>
+      <div class="nav-links"><a href="#pricing">Pricing</a><a href="#docs">Docs</a></div>
+      <span class="powered">payments by <a href="/">FlarePay</a></span>
+    </nav>
+
+    <header class="kelvin-hero">
+      <span class="eyebrow">example merchant</span>
+      <h1>Weather data by the call.</h1>
+      <p class="tagline">
+        Buy a credit pack with native XRP. Settlement is proven on Flare once —
+        then every call is instant.
+      </p>
+      <p class="kelvin-note">
+        This is a fictional customer built <b>on</b> FlarePay, to show the integration
+        from a merchant's side. Testnet XRP only.
+      </p>
+    </header>
+
+    <main class="shell kelvin-main">
+      <!-- ── the working demo ──────────────────────────────────── -->
+      <section class="kelvin-grid">
+        <div class="kelvin-panel">
+          <h2>1 · Your account</h2>
+          <button class="primary" id="createKey">Create an API key</button>
+          <p class="hint mono-wrap" id="keyOut">no key yet</p>
+
+          <h2 id="pricing">2 · Buy credits</h2>
+          <div class="packs" id="packs"></div>
+          <p class="hint" id="topupNote"></p>
+
+          <h2>3 · Make a call</h2>
+          <button class="ghost" id="callBtn" disabled>GET /v1/forecast</button>
+          <pre class="kelvin-out" id="callOut">awaiting credits…</pre>
+        </div>
+
+        <aside class="kelvin-panel kelvin-side">
+          <div class="balance-card">
+            <span class="balance-label">Credits</span>
+            <span class="balance-value" id="creditValue">0</span>
+            <span class="balance-sub" id="creditSub">create a key to begin</span>
+          </div>
+
+          <div class="timing">
+            <h3>Where the time goes</h3>
+            <div class="timing-row"><span>Top-up</span><b>~160s, once</b></div>
+            <div class="timing-row"><span>Every call after</span><b class="ok">instant</b></div>
+            <p class="hint">
+              The FDC proof is paid for at top-up and amortised across the whole pack.
+              That is what makes a 20 FLR attestation rational.
+            </p>
+          </div>
+        </aside>
+      </section>
+
+      <!-- ── the integration ───────────────────────────────────── -->
+      <section class="section" id="docs">
+        <h2 class="section-title">The whole integration</h2>
+        <div class="dev-grid">
+          <pre><code><span class="c-dim">// 1. sell a pack — one call to FlarePay</span>
+POST /api/charges
+{ "usdCents": 1000,
+  "metadata": "750 credits" }
+
+<span class="c-dim">→ { id, xrpAmount, destinationTag,
+    checkoutUrl }</span></code></pre>
+          <pre><code><span class="c-dim">// 2. grant on the signed webhook</span>
+X-FlarePay-Signature: sha256=…
+
+{ "event": "charge.paid",
+  "charge": { "id": "22",
+    "votingRound": 1421448 } }
+
+<span class="c-dim">// credits += pack.credits</span></code></pre>
+          <pre><code><span class="c-dim">// 3. serve the product — no proof here</span>
+POST /v1/forecast
+→ 200 { forecast, remaining: 749 }
+
+<span class="c-dim">// settlement already happened.
+// this path never touches Flare.</span></code></pre>
+        </div>
+        <p class="section-foot">
+          Kelvin never holds a private key, never runs an XRPL node, and never takes custody.
+          The payment goes payer → Kelvin directly; Flare only proves it.
+        </p>
+      </section>
+
+      <footer>
+        <p class="fine">
+          Kelvin API is a demo merchant · <a href="/">FlarePay</a> · Coston2 + XRPL testnet
+        </p>
+      </footer>
+    </main>
+    <script type="module" src="/src/example.ts"></script>
+  </body>
+</html>

@@ -14,6 +14,7 @@ export default defineConfig({
         dashboard: "dashboard.html",
         auth: "auth.html",
         pay: "pay.html",
+        example: "example.html",
       },
     },
   },

@@ -1,0 +1,49 @@
+/* Kelvin API — deliberately a different brand from FlarePay. */
+.kelvin { --accent: #2f8fbf; --accent-soft: rgba(47, 143, 191, 0.13); }
+.kelvin body, .kelvin { background: radial-gradient(1100px 480px at 72% -12%, rgba(47, 143, 191, 0.14), transparent), var(--bg); }
+.kelvin-brand { color: var(--text); }
+.kelvin-brand span { color: var(--accent); }
+.powered { margin-left: auto; color: var(--muted); font-size: 0.78rem; }
+.powered a { color: #e62058; text-decoration: none; font-weight: 600; }
+
+.kelvin-hero { padding: 120px 20px 40px; text-align: center; max-width: 46rem; margin: 0 auto; }
+.kelvin-hero h1 { font-family: var(--display); font-size: clamp(2rem, 4vw, 3rem); letter-spacing: -0.03em; margin: 10px 0; }
+.kelvin-note { color: var(--muted); font-size: 0.8rem; max-width: 34rem; margin: 14px auto 0; }
+.kelvin-main { padding-top: 0; }
+
+.kelvin-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; align-items: start; }
+.kelvin-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 26px; }
+.kelvin-panel h2 { font-family: var(--display); font-size: 0.95rem; margin: 22px 0 10px; }
+.kelvin-panel h2:first-child { margin-top: 0; }
+@media (max-width: 860px) { .kelvin-grid { grid-template-columns: 1fr; } }
+
+.packs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.pack {
+  display: flex; flex-direction: column; gap: 3px; text-align: left; cursor: pointer;
+  background: var(--panel-2); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+  color: var(--text); font: inherit;
+}
+.pack:hover:not(:disabled) { border-color: var(--accent); }
+.pack:disabled { opacity: 0.45; cursor: not-allowed; }
+.pack-label { font-weight: 600; font-size: 0.86rem; }
+.pack-credits { color: var(--muted); font-size: 0.74rem; }
+.pack-price { font-family: var(--mono); color: var(--accent); font-size: 1rem; margin-top: 4px; }
+@media (max-width: 560px) { .packs { grid-template-columns: 1fr; } }
+
+.kelvin-out {
+  margin: 10px 0 0; min-height: 96px; font-size: 0.76rem; line-height: 1.6;
+  background: #0d0f14; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+  white-space: pre-wrap; color: var(--text);
+}
+
+.kelvin-side { display: flex; flex-direction: column; gap: 20px; }
+.balance-card { text-align: center; padding: 6px 0 2px; }
+.balance-label { display: block; color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.09em; }
+.balance-value { display: block; font-family: var(--display); font-size: 3rem; font-weight: 700; letter-spacing: -0.03em; color: var(--accent); }
+.balance-sub { display: block; color: var(--muted); font-size: 0.76rem; margin-top: 4px; }
+
+.timing h3 { font-family: var(--display); font-size: 0.85rem; margin: 0 0 10px; }
+.timing-row { display: flex; justify-content: space-between; font-size: 0.8rem; padding: 7px 0; border-top: 1px solid var(--line); }
+.timing-row b { font-family: var(--mono); }
+.timing-row b.ok { color: var(--ok); }
+.timing .hint { margin-top: 10px; }

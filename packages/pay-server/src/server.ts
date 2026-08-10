@@ -19,6 +19,7 @@ import { FlarePay, type ChargeView, type Persistence } from "./flarepay.js";
 import { Store, LocalPersistence } from "./store.js";
 import { Db, safeEqual, sha256 } from "./db.js";
 import { payDemoCharge } from "./demo-payer.js";
+import { CREDIT_PACKS, consume, createAccount, getAccount, recordPending, reconcile } from "./example-merchant.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(here, "../../..");
@@ -306,6 +307,60 @@ const server = createServer(async (req, res) => {
     if (route === "GET /api/assets") return send(res, 200, { assets: await flarePay.assets() });
 
     if (route === "GET /api/rate") return send(res, 200, await flarePay.rate());
+
+    /**
+     * ── Kelvin API: an example merchant built ON FlarePay ─────────────
+     * Sells prepaid call credits. The FDC round is paid once, at top-up;
+     * every call afterwards draws down instantly. This is the integration
+     * a real customer writes, and it lives outside the payment engine.
+     */
+    if (route === "GET /api/kelvin/packs") return send(res, 200, { packs: CREDIT_PACKS });
+
+    if (route === "POST /api/kelvin/account") {
+      if (rateLimited(req, "write")) return send(res, 429, { error: "slow down" });
+      const account = createAccount();
+      return send(res, 201, { key: account.key, credits: account.credits });
+    }
+
+    if (route === "GET /api/kelvin/balance") {
+      const account = getAccount(url.searchParams.get("key") ?? "");
+      if (!account) return send(res, 404, { error: "unknown key" });
+      reconcile(account, flarePay);
+      const pending = [...account.pending.entries()].map(([chargeId, credits]) => ({
+        chargeId,
+        credits,
+        state: flarePay.get(chargeId)?.state ?? "unknown",
+      }));
+      return send(res, 200, { credits: account.credits, calls: account.calls, pending });
+    }
+
+    if (route === "POST /api/kelvin/topup") {
+      if (rateLimited(req, "write")) return send(res, 429, { error: "slow down" });
+      const body = await readBody(req);
+      const account = getAccount(String(body.key ?? ""));
+      if (!account) return send(res, 404, { error: "unknown key" });
+      const pack = CREDIT_PACKS.find((p) => p.id === String(body.pack ?? ""));
+      if (!pack) return send(res, 400, { error: "unknown pack" });
+
+      const merchantXrplAddress = await merchantAddressFor(demoAccountId);
+      const charge = await flarePay.createCharge(pack.usdCents, `Kelvin API — ${pack.credits} credits`, {
+        accountId: demoAccountId,
+        ...(merchantXrplAddress ? { merchantXrplAddress } : {}),
+      });
+      recordPending(account, charge.id, pack.credits);
+      void flarePay.awaitAndSettle(charge.id);
+      return send(res, 201, { charge, pack });
+    }
+
+    if (route === "POST /api/kelvin/call") {
+      const body = await readBody(req);
+      const account = getAccount(String(body.key ?? ""));
+      if (!account) return send(res, 404, { error: "unknown key" });
+      reconcile(account, flarePay);
+      const result = consume(account);
+      if (!result.ok) return send(res, 402, { error: "no credits — top up to continue", credits: 0 });
+      return send(res, 200, { forecast: result.answer, remaining: result.remaining });
+    }
 
     /** Aggregate, non-identifying totals for the public landing page. */
     if (route === "GET /api/public-stats") {
