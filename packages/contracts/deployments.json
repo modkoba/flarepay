@@ -3,6 +3,9 @@
     "FlarePayEscrow": "0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD",
     "deployedAt": "2026-08-08T08:42:37.721Z",
     "deployTx": "0x55dbd9946678957833699a99d32489e4823b9e24c34a5fe03dba37fa94eb2dee",
-    "explorer": "https://coston2.flarescan.com/address/0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD"
+    "explorer": "https://coston2.flarescan.com/address/0xec5b10b6e81e3832bb32923aEcEd58F0747aBBDD",
+    "XrpAccessPass": "0x91Cf78f8b2063C13Fc1FB5E4eE542413cD82B440",
+    "PremiumVault": "0x4E4aCE078e3cC725DBFE6E2499315A576ce56CBc",
+    "accessPassDeployedAt": "2026-08-10T19:20:41.496Z"
   }
 }

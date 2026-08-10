@@ -1,0 +1,84 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "chargeId",
+          "type": "uint256"
+        }
+      ],
+      "name": "charges",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "merchant",
+          "type": "address"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "merchantAddressHash",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "usdCents",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint256",
+          "name": "rateValue",
+          "type": "uint256"
+        },
+        {
+          "internalType": "int8",
+          "name": "rateDecimals",
+          "type": "int8"
+        },
+        {
+          "internalType": "uint256",
+          "name": "quotedDrops",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint16",
+          "name": "toleranceBips",
+          "type": "uint16"
+        },
+        {
+          "internalType": "uint32",
+          "name": "destinationTag",
+          "type": "uint32"
+        },
+        {
+          "internalType": "uint64",
+          "name": "createdAt",
+          "type": "uint64"
+        },
+        {
+          "internalType": "uint64",
+          "name": "expiresAt",
+          "type": "uint64"
+        },
+        {
+          "internalType": "bool",
+          "name": "settled",
+          "type": "bool"
+        },
+        {
+          "internalType": "bytes32",
+          "name": "settledTxId",
+          "type": "bytes32"
+        },
+        {
+          "internalType": "string",
+          "name": "metadata",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x"
+}

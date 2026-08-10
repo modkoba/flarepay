@@ -26,6 +26,10 @@ const input = {
   sources,
   settings: {
     optimizer: { enabled: true, runs: 200 },
+    // Reading FlarePayEscrow's 13-field `charges` getter (which includes a
+    // dynamic string) overflows the legacy codegen's stack. The IR pipeline is
+    // solc's documented fix and does not change any deployed ABI.
+    viaIR: true,
     evmVersion: "london",
     outputSelection: { "*": { "*": ["abi", "evm.bytecode.object"] } },
   },
