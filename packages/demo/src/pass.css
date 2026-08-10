@@ -1,0 +1,47 @@
+/* Proof-of-access demo */
+.pass-hero { padding: 116px 20px 34px; text-align: center; max-width: 50rem; margin: 0 auto; }
+.pass-hero h1 { font-family: var(--display); font-size: clamp(1.9rem, 3.8vw, 2.9rem); line-height: 1.12; letter-spacing: -0.03em; margin: 10px 0 12px; }
+.pass-main { padding-top: 0; }
+.powered { margin-left: auto; font-size: 0.78rem; }
+.powered a { color: var(--muted); text-decoration: none; }
+.powered a:hover { color: var(--accent); }
+
+.pass-flow { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+.pass-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px 26px; }
+.pass-panel h2 { font-family: var(--display); font-size: 0.95rem; margin: 22px 0 8px; }
+.pass-panel h2:first-child { margin-top: 0; }
+@media (max-width: 900px) { .pass-flow { grid-template-columns: 1fr; } }
+
+.pass-steps { list-style: none; margin: 22px 0 0; padding: 0; display: flex; flex-direction: column; gap: 11px; }
+.pass-steps li { display: flex; align-items: flex-start; gap: 11px; font-size: 0.84rem; color: var(--muted); }
+.pass-steps i { width: 9px; height: 9px; margin-top: 6px; border-radius: 50%; border: 1.5px solid var(--muted); flex: 0 0 9px; }
+.pass-steps li.done { color: var(--text); }
+.pass-steps li.done i { background: var(--ok); border-color: var(--ok); }
+.pass-steps em { font-style: normal; color: var(--muted); }
+
+/* the unrelated contract */
+.vault-panel { border-color: rgba(230, 32, 88, 0.35); transition: border-color 0.4s, background 0.4s; }
+.vault-panel.unlocked { border-color: var(--ok); background: linear-gradient(160deg, rgba(47,191,113,0.08), transparent 60%), var(--panel); }
+.vault-head { display: flex; align-items: center; justify-content: space-between; }
+.vault-title { font-family: var(--display); font-size: 1.05rem; font-weight: 700; }
+.vault-state {
+  font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.1em; border-radius: 999px;
+  padding: 4px 11px; color: var(--accent); background: var(--accent-soft);
+}
+.unlocked .vault-state { color: var(--ok); background: rgba(47, 191, 113, 0.14); }
+
+.vault-body { margin-top: 18px; text-align: center; }
+.vault-lock { display: grid; place-items: center; margin-bottom: 14px; color: var(--accent); transition: color 0.4s, transform 0.4s; }
+.vault-lock svg { width: 52px; height: 52px; }
+.unlocked .vault-lock { color: var(--ok); transform: translateY(-2px); }
+.unlocked .vault-lock svg path:first-of-type { transform: translateX(3px) rotate(-14deg); transform-origin: 12px 10px; transition: transform 0.4s; }
+.vault-out {
+  margin: 14px 0 0; min-height: 92px; text-align: left; font-size: 0.75rem; line-height: 1.6;
+  background: #0d0f14; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px;
+  white-space: pre-wrap;
+}
+
+/* Links inside panels: never browser-default blue. */
+.pass-panel a, .pass-hero a { color: var(--accent); text-decoration: none; border-bottom: 1px solid transparent; }
+.pass-panel a:hover, .pass-hero a:hover { border-bottom-color: var(--accent); }
+.pass-panel .hint a { font-family: var(--mono); font-size: 0.74rem; }

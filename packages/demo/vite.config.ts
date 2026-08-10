@@ -15,6 +15,7 @@ export default defineConfig({
         auth: "auth.html",
         pay: "pay.html",
         example: "example.html",
+        pass: "pass.html",
       },
     },
   },

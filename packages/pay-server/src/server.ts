@@ -18,6 +18,7 @@ import { fileURLToPath } from "node:url";
 import { FlarePay, type ChargeView, type Persistence } from "./flarepay.js";
 import { Store, LocalPersistence } from "./store.js";
 import { Db, safeEqual, sha256 } from "./db.js";
+import { Contract, JsonRpcProvider, Wallet } from "ethers";
 import { payDemoCharge } from "./demo-payer.js";
 import { CREDIT_PACKS, consume, createAccount, getAccount, recordPending, reconcile } from "./example-merchant.js";
 
@@ -48,6 +49,22 @@ const PORT = Number(process.env.PORT ?? 8787);
 const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const PLATFORM = Boolean(SUPABASE_URL && SERVICE_KEY);
+const passArtifact = readJson(path.join(repoRoot, "packages/contracts/out/XrpAccessPass.json"));
+
+/**
+ * Relay a pass claim. Anyone may call claim() on-chain — we submit it purely so
+ * a holder who owns no FLR never has to. The contract binds the recipient to
+ * the charge metadata, so relaying grants us no power to redirect it.
+ */
+async function claimAccessPass(chargeId: string, flareAddress: string): Promise<string> {
+  const provider = new JsonRpcProvider("https://coston2-api.flare.network/ext/C/rpc");
+  const wallet = new Wallet(privateKey, provider);
+  const pass = new Contract(deployments.coston2.XrpAccessPass, passArtifact.abi, wallet);
+  const tx = await pass.claim(BigInt(chargeId), flareAddress);
+  const receipt = await tx.wait();
+  return receipt.hash;
+}
+
 /** Ceiling for the judge-convenience demo payer, in USD cents. */
 const DEMO_PAY_MAX_CENTS = Number(process.env.DEMO_PAY_MAX_CENTS ?? 500);
 
@@ -314,6 +331,54 @@ const server = createServer(async (req, res) => {
      * every call afterwards draws down instantly. This is the integration
      * a real customer writes, and it lives outside the payment engine.
      */
+    /**
+     * ── Access pass: the on-chain consequence ─────────────────────────
+     * A charge whose recipient is pinned into metadata before payment, and
+     * a relayed claim. The claim is permissionless on-chain; we submit it
+     * only so a holder who owns no FLR never needs gas.
+     */
+    if (route === "GET /api/pass/config") {
+      return send(res, 200, {
+        pass: deployments.coston2.XrpAccessPass,
+        vault: deployments.coston2.PremiumVault,
+        escrow: deployments.coston2.FlarePayEscrow,
+        rpcUrl: "https://coston2-api.flare.network/ext/C/rpc",
+        explorer: "https://coston2.flarescan.com",
+      });
+    }
+
+    if (route === "POST /api/pass/charge") {
+      if (rateLimited(req, "write")) return send(res, 429, { error: "slow down" });
+      const body = await readBody(req);
+      const flareAddress = String(body.flareAddress ?? "");
+      if (!/^0x[0-9a-fA-F]{40}$/.test(flareAddress)) return send(res, 400, { error: "invalid Flare address" });
+      const usdCents = Math.min(Math.max(Number(body.usdCents ?? 100), 50), 500);
+
+      const merchantXrplAddress = await merchantAddressFor(demoAccountId);
+      const charge = await flarePay.createCharge(usdCents, `pass:${flareAddress.toLowerCase()}`, {
+        accountId: demoAccountId,
+        ...(merchantXrplAddress ? { merchantXrplAddress } : {}),
+      });
+      void flarePay.awaitAndSettle(charge.id);
+      return send(res, 201, { charge });
+    }
+
+    if (route === "POST /api/pass/claim") {
+      if (rateLimited(req, "write")) return send(res, 429, { error: "slow down" });
+      const body = await readBody(req);
+      const chargeId = String(body.chargeId ?? "");
+      const flareAddress = String(body.flareAddress ?? "");
+      if (!/^0x[0-9a-fA-F]{40}$/.test(flareAddress)) return send(res, 400, { error: "invalid Flare address" });
+      const charge = flarePay.get(chargeId);
+      if (charge?.state !== "paid") return send(res, 409, { error: "charge has not settled yet" });
+      try {
+        const hash = await claimAccessPass(chargeId, flareAddress);
+        return send(res, 200, { claimTx: hash });
+      } catch (err) {
+        return send(res, 400, { error: (err as Error).message.slice(0, 200) });
+      }
+    }
+
     if (route === "GET /api/kelvin/packs") return send(res, 200, { packs: CREDIT_PACKS });
 
     if (route === "POST /api/kelvin/account") {

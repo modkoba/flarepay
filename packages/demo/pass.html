@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Proof of Access — an XRP payment drives a Flare contract</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/src/style.css" />
+    <link rel="stylesheet" href="/src/pass.css" />
+  </head>
+  <body>
+    <nav class="nav">
+      <a class="brand" href="/">Flare<span>Pay</span></a>
+      <div class="nav-links"><a href="/">Home</a><a href="/example.html">Merchant demo</a></div>
+      <span class="powered" id="contractLinks"></span>
+    </nav>
+
+    <header class="pass-hero">
+      <span class="eyebrow">the point of the whole thing</span>
+      <h1>Pay on a chain with no contracts.<br />Change one on Flare.</h1>
+      <p class="tagline">
+        <b>PremiumVault</b> knows nothing about XRP, payments, or FlarePay. It reads one
+        access contract and nothing else — so a server's database could never unlock it.
+      </p>
+    </header>
+
+    <main class="shell pass-main">
+      <section class="pass-flow">
+        <!-- ── left: what you do ─────────────────────────────── -->
+        <div class="pass-panel">
+          <h2>1 · Who gets access</h2>
+          <p class="hint">
+            You need an address to receive access — not a wallet, not gas, not a signature.
+            The claim is permissionless, so anyone can submit it for you.
+          </p>
+          <div class="row">
+            <input id="addrInput" spellcheck="false" placeholder="0x… your Flare address" />
+            <button class="ghost" id="genAddr">Generate</button>
+          </div>
+
+          <h2>2 · Buy a pass with native XRP</h2>
+          <div class="row">
+            <button class="primary" id="buyBtn" disabled>Buy 100 minutes — $1.00</button>
+          </div>
+          <p class="hint" id="buyNote"></p>
+
+          <ol class="pass-steps" id="steps">
+            <li data-step="charge"><i></i><span>Charge opened, recipient pinned on-chain</span></li>
+            <li data-step="paid"><i></i><span>XRP paid on the XRP Ledger</span></li>
+            <li data-step="proof"><i></i><span>FDC round finalized <em>(~2 min — real consensus)</em></span></li>
+            <li data-step="claim"><i></i><span>Pass claimed on Flare</span></li>
+          </ol>
+        </div>
+
+        <!-- ── right: the unrelated contract ─────────────────── -->
+        <div class="pass-panel vault-panel" id="vaultPanel">
+          <div class="vault-head">
+            <span class="vault-title">PremiumVault</span>
+            <span class="vault-state" id="vaultState">no access</span>
+          </div>
+          <p class="hint mono-wrap" id="vaultAddr"></p>
+
+          <div class="vault-body">
+            <div class="vault-lock" id="vaultLock" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+                <rect x="4" y="10" width="16" height="10" rx="2.5" /><path d="M8 10V7a4 4 0 018 0v3" />
+              </svg>
+            </div>
+            <button class="ghost" id="readBtn" disabled>Call premiumValue()</button>
+            <pre class="vault-out" id="vaultOut">canRead(you) → reading chain…</pre>
+          </div>
+
+          <p class="hint">
+            Read live from Coston2 in your browser — not from our server.
+            <a id="verifyLink" href="#" target="_blank" rel="noopener">Verify on the explorer ↗</a>
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 class="section-title">Why this needs a contract</h2>
+        <div class="versus">
+          <article class="vs-card">
+            <span class="vs-label">A server-side balance</span>
+            <ul class="vs-list">
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>Only the issuing server can honour it</li>
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>No contract can read or trust it</li>
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>Watching XRPL directly would do just as well</li>
+            </ul>
+          </article>
+          <article class="vs-card vs-win">
+            <span class="vs-label">An on-chain grant</span>
+            <ul class="vs-list">
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Any contract on Flare can gate on it</li>
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Recipient pinned before payment — not redirectable</li>
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Only FDC can tell a contract the XRP arrived</li>
+            </ul>
+          </article>
+        </div>
+        <p class="section-foot">
+          Contracts are unverified testnet deployments on Coston2. XRP is testnet XRP.
+        </p>
+      </section>
+
+      <footer><p class="fine">FlarePay · Coston2 + XRPL testnet · <a href="/">Home</a></p></footer>
+    </main>
+    <script type="module" src="/src/pass.ts"></script>
+  </body>
+</html>
