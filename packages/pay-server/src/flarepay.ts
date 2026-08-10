@@ -381,8 +381,18 @@ export class FlarePay {
     return verification.proof;
   }
 
-  /** Poll the XRPL for a validated payment to the merchant with this tag. */
+  /**
+   * Poll the XRPL for a validated payment to this charge's merchant with this tag.
+   *
+   * Watch the address the payer was actually told to pay — charge.merchantAddress —
+   * not the platform wallet. Every account has its own payout address, and the
+   * escrow settles against keccak256(charge.merchantAddress), so watching anything
+   * else silently strands real merchants' payments.
+   */
   private async watchForPayment(charge: ChargeView, timeoutMs: number): Promise<string> {
+    const merchantAddress = charge.merchantAddress;
+    if (!merchantAddress) throw new Error(`charge ${charge.id} has no merchant address`);
+
     const client = new Client(this.config.xrplWss);
     await client.connect();
     const startedAt = Date.now();
@@ -390,7 +400,7 @@ export class FlarePay {
       while (Date.now() - startedAt < timeoutMs) {
         const response = await client.request({
           command: "account_tx",
-          account: this.config.merchantXrplAddress,
+          account: merchantAddress,
           ledger_index_min: -1,
           ledger_index_max: -1,
           limit: 30,
@@ -400,7 +410,7 @@ export class FlarePay {
           const tx = (entry as { tx_json?: Record<string, unknown> }).tx_json ?? (entry as { tx?: Record<string, unknown> }).tx;
           if (!tx || tx.TransactionType !== "Payment") continue;
           if (Number(tx.DestinationTag) !== charge.destinationTag) continue;
-          if (tx.Destination !== this.config.merchantXrplAddress) continue;
+          if (tx.Destination !== merchantAddress) continue;
           const hash = (entry as { hash?: string }).hash ?? (tx.hash as string | undefined);
           if (hash && entry.validated !== false) return hash;
         }
