@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>FlarePay — x402 payments in native XRP, no wallet required</title>
-    <meta name="description" content="AI agents pay in native XRP. No EVM wallet, no token standard, no gas — settlement is a cryptographic proof on Flare, not a signed authorization." />
+    <title>FlarePay — native XRP payments settled by proof on Flare</title>
+    <meta name="description" content="Accept native XRP with settlement proven on Flare by the Data Connector. No EVM wallet, no bridge, no custody — and an SDK that makes FDC one function call." />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta property="og:title" content="FlarePay — settle by proof, not by signature" />
-    <meta property="og:description" content="x402 payments in native XRP. No EVM wallet, no EIP-3009, no bridge. Proven on Flare." />
+    <meta property="og:description" content="Native XRP payments settled by FDC proof. No bridge, no custody, no EIP-3009." />
     <meta property="og:image" content="/og.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -22,6 +22,7 @@
         <a href="#why">Why it works</a>
         <a href="#flow">Agent flow</a>
         <a href="#coins">Coins</a>
+        <a href="#sdk">SDK</a>
         <a href="#pricing">Pricing</a>
       </div>
       <a class="primary btn-link nav-primary" href="/auth.html">Get API keys</a>
@@ -31,7 +32,7 @@
     <section class="hero3d" id="hero3d">
       <canvas id="heroCanvas" aria-hidden="true"></canvas>
       <div class="hero3d-content">
-        <span class="eyebrow">x402 · agent-native payments</span>
+        <span class="eyebrow">FDC-settled payments</span>
         <h1>Settle by proof,<br />not by signature.</h1>
         <p class="tagline">
           Your agent pays in native XRP. No EVM wallet, no token standard, no gas.
@@ -51,10 +52,10 @@
     <main class="shell">
       <!-- ── why it works: the structural argument ─────────────── -->
       <section class="section reveal" id="why">
-        <h2 class="section-title">Every other rail needs a signature.</h2>
+        <h2 class="section-title">Settlement chains need a signature. We don't.</h2>
         <div class="versus">
           <article class="vs-card">
-            <span class="vs-label">Standard x402</span>
+            <span class="vs-label">x402 &ldquo;exact&rdquo; scheme</span>
             <ul class="vs-list">
               <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>Asset must be an ERC-20 with EIP-3009</li>
               <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>Payer needs an EVM wallet and key</li>
@@ -62,7 +63,7 @@
             </ul>
           </article>
           <article class="vs-card vs-win">
-            <span class="vs-label">FlarePay</span>
+            <span class="vs-label">FlarePay &mdash; <code>xrpl-payment</code> scheme</span>
             <ul class="vs-list">
               <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Native XRP, no token standard at all</li>
               <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Pay from any wallet or exchange</li>
@@ -71,11 +72,11 @@
           </article>
         </div>
         <blockquote class="doc-quote">
-          <p>Flare's own x402 guide ships with a mock token — “FXRP will be supported once it implements the required EIP-3009 standard.”</p>
+          <p>The x402 <em>exact</em> scheme requires EIP-3009. FXRP doesn't implement it yet — “FXRP will be supported once it implements the required EIP-3009 standard” — so Flare's guide demos with a mock token. We took the path that never needed it.</p>
           <a href="https://dev.flare.network/fxrp/token-interactions/x402-payments" target="_blank" rel="noopener">dev.flare.network — x402 Payment Protocol ↗</a>
         </blockquote>
         <p class="section-foot">
-          We never needed EIP-3009. Settlement is an <b>FDC proof</b>, not an authorization — so native XRP works today.
+          Honest scope: this is the x402 <b>pattern</b> with our own scheme — not wire-compatible with EIP-3009 facilitators.
         </p>
       </section>
 
@@ -101,7 +102,7 @@
                 <span class="mock-secure">or a human pays</span>
               </div>
               <div class="mock-amount">
-                <span class="mock-usd" id="mockUsd">$0.25</span>
+                <span class="mock-usd" id="mockUsd">$25.00</span>
                 <span class="mock-xrp"><b id="mockXrp">—</b> XRP</span>
               </div>
               <div class="mock-qr" aria-hidden="true">
@@ -128,13 +129,13 @@
           <label for="calcUsd">Per request</label>
           <div class="amount-field">
             <span>$</span>
-            <input id="calcUsd" type="number" min="0.01" step="0.01" value="0.25" inputmode="decimal" />
+            <input id="calcUsd" type="number" min="0.5" step="0.5" value="25" inputmode="decimal" />
           </div>
           <div class="amount-presets">
-            <button data-amount="0.01">$0.01</button>
-            <button data-amount="0.25">$0.25</button>
             <button data-amount="2">$2</button>
             <button data-amount="25">$25</button>
+            <button data-amount="100">$100</button>
+            <button data-amount="2500">$2,500</button>
           </div>
           <dl class="calc-facts">
             <dt>Agent pays</dt><dd><b id="calcXrp">—</b> XRP</dd>
@@ -224,6 +225,33 @@
         </div>
       </section>
 
+      <!-- ── the SDK: the developer problem this actually solves ─ -->
+      <section class="section reveal" id="sdk">
+        <h2 class="section-title">FDC, without the six contracts.</h2>
+        <div class="versus">
+          <article class="vs-card">
+            <span class="vs-label">Verifying an XRP payment by hand</span>
+            <ul class="vs-list">
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>6 contracts to learn: Registry, FdcHub, FeeConfig, FSM, Relay, FdcVerification</li>
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>Hand-rolled selectors and MIC — wrong ones fail silently</li>
+              <li class="no"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M6 6l8 8M14 6l-8 8"/></svg>No fee estimate, no ETA, no resume after a crash</li>
+            </ul>
+          </article>
+          <article class="vs-card vs-win">
+            <span class="vs-label">FlareKit SDK</span>
+            <ul class="vs-list">
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg><code>kit.fdc.verifyXrpPayment()</code> — one call</li>
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Selectors derived from published ABIs, never guessed</li>
+              <li class="yes"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M5 10.5l3.5 3.5L15 7"/></svg>Fee estimate, honest ETA, and crash-resume that pays once</li>
+            </ul>
+          </article>
+        </div>
+        <p class="section-foot">
+          FlarePay is the reference implementation. <b>The SDK is the reusable part</b> — every capability
+          on this page is a live probe against Flare's own verifiers.
+        </p>
+      </section>
+
       <!-- ── pricing ───────────────────────────────────────────── -->
       <section class="section reveal" id="pricing">
         <h2 class="section-title">You keep 100%.</h2>
@@ -232,7 +260,7 @@
             <span class="price-label">Card processors</span>
             <span class="price-big">1–3%</span>
             <ul>
-              <li>micropayments are impossible</li>
+              <li>2.9% + 30¢ floor on every charge</li>
               <li>chargebacks and reversals</li>
             </ul>
           </div>
@@ -240,8 +268,8 @@
             <span class="price-label">FlarePay</span>
             <span class="price-big">0%</span>
             <ul>
-              <li>cent-sized calls actually work</li>
-              <li>network cost only, in cents</li>
+              <li>no percentage of your revenue</li>
+              <li>flat network cost: ~20 FLR + gas per settlement</li>
             </ul>
           </div>
         </div>
@@ -249,7 +277,7 @@
 
       <!-- ── trust ─────────────────────────────────────────────── -->
       <section class="section reveal">
-        <h2 class="section-title">It cannot take your money.</h2>
+        <h2 class="section-title">Nobody holds your money.</h2>
         <div class="trust-grid">
           <div>
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">
@@ -263,7 +291,7 @@
               <path d="M12 3v18M5 8l7-5 7 5M5 16l7 5 7-5" />
             </svg>
             <h4>Permissionless proofs</h4>
-            <p>Anyone can settle a payment. We're just a relay.</p>
+            <p>Anyone can submit the proof, so we can stall a settlement but never block it.</p>
           </div>
           <div>
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4">

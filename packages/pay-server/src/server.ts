@@ -47,6 +47,9 @@ const PORT = Number(process.env.PORT ?? 8787);
 const SUPABASE_URL = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const SERVICE_KEY = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const PLATFORM = Boolean(SUPABASE_URL && SERVICE_KEY);
+/** Ceiling for the judge-convenience demo payer, in USD cents. */
+const DEMO_PAY_MAX_CENTS = Number(process.env.DEMO_PAY_MAX_CENTS ?? 500);
+
 const VERIFIER_URL = "https://fdc-verifiers-testnet.flare.network";
 const VERIFIER_KEY = "00000000-0000-0000-0000-000000000000";
 
@@ -203,9 +206,21 @@ const server = createServer(async (req, res) => {
     /** Demo convenience: pay a charge from our funded testnet payer wallet. */
     if (route.startsWith("POST /api/charges/") && url.pathname.endsWith("/demo-pay")) {
       if (rateLimited(req, "write")) return send(res, 429, { error: "slow down" });
+      /**
+       * Convenience only: this signs with our funded testnet wallet so a judge
+       * can watch the full flow without installing one. It is deliberately
+       * capped and disable-able — on a public URL an uncapped version is a
+       * faucet-drain button for anyone who can create a charge.
+       */
+      if (process.env.DEMO_PAY === "off") return send(res, 403, { error: "demo payments disabled" });
       const id = url.pathname.split("/")[3];
       const charge = flarePay.get(id);
       if (!charge) return send(res, 404, { error: "unknown charge" });
+      if (charge.usdCents > DEMO_PAY_MAX_CENTS) {
+        return send(res, 403, {
+          error: `demo payments are capped at $${(DEMO_PAY_MAX_CENTS / 100).toFixed(2)} — pay this one from your own wallet`,
+        });
+      }
       const hash = await payDemoCharge(charge);
       return send(res, 202, { xrplTxHash: hash });
     }
