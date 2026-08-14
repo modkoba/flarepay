@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>FlarePay</title>
+  <defs>
+    <radialGradient id="rootGlow" cx="50%" cy="78%" r="55%">
+      <stop offset="0%" stop-color="#e62058" stop-opacity=".4"/>
+      <stop offset="100%" stop-color="#e62058" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#0b0c10"/>
+  <circle cx="256" cy="380" r="150" fill="url(#rootGlow)"/>
+  <g stroke="#e62058" stroke-width="26" stroke-linecap="round" fill="none">
+    <path d="M256 420 L256 300"/>
+    <path d="M256 300 L160 196"/>
+    <path d="M256 300 L352 196"/>
+  </g>
+  <circle cx="160" cy="176" r="46" fill="#ff9d5c"/>
+  <circle cx="352" cy="176" r="46" fill="#ff9d5c"/>
+  <circle cx="160" cy="176" r="19" fill="#fff3e0"/>
+  <circle cx="352" cy="176" r="19" fill="#fff3e0"/>
+  <circle cx="256" cy="432" r="34" fill="#e62058"/>
+</svg>

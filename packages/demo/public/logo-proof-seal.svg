@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>FlarePay</title>
+  <rect width="512" height="512" rx="112" fill="#0b0c10"/>
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#e62058" stroke-width="24"
+          stroke-linecap="round" stroke-dasharray="196 60" transform="rotate(-58 256 256)"/>
+  <g fill="#e62058">
+    <path d="M256 96 L288 232 L256 274 L224 232 Z"/>
+    <path d="M256 416 L224 280 L256 238 L288 280 Z" opacity=".85"/>
+  </g>
+  <circle cx="256" cy="256" r="56" fill="#ff9d5c"/>
+  <circle cx="256" cy="256" r="26" fill="#fff3e0"/>
+</svg>

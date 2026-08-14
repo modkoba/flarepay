@@ -29,8 +29,9 @@ deploy, then video.
       so the 90–180 s wait is shown honestly with a running clock rather than cut around.
       ElevenLabs voiceover generated for all 8 beats; runs 3:49, so it needs trimming to
       fit 3:00. Remaining: dry run, trim, record, edit.
-- [ ] Submission writeup: judging-criteria mapping, pre-existing vs new work, contract
-      addresses, roadmap
+- [~] Submission writeup — vision, description (one-liner / short / full), proven-live
+      table, contract addresses and roadmap drafted in the local planning notes.
+      Still to write: judging-criteria mapping and the pre-existing vs new work split.
 
 ## Now — verified green (Aug 14 audit)
 

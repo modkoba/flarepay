@@ -66,7 +66,16 @@ async function claimAccessPass(chargeId: string, flareAddress: string): Promise<
 }
 
 /** Ceiling for the judge-convenience demo payer, in USD cents. */
-const DEMO_PAY_MAX_CENTS = Number(process.env.DEMO_PAY_MAX_CENTS ?? 500);
+// Uncapped by default: the site's own price points ($10 checkout, $25 calculator)
+// all exceeded the old $5 ceiling, so the demo button 403'd on its own defaults.
+// Set DEMO_PAY_MAX_CENTS to bound faucet exposure on a public deployment —
+// POST /api/charges takes a caller-supplied amount with no auth, so an uncapped
+// demo payer there signs whatever a stranger asks for. DEMO_PAY=off kills it outright.
+const DEMO_PAY_MAX_CENTS = Number(process.env.DEMO_PAY_MAX_CENTS ?? 0) || Infinity;
+
+/** The x402 endpoint's own charge, identified so it only ever reuses its own. */
+const X402_USD_CENTS = 200;
+const X402_METADATA = "x402: market report";
 
 const VERIFIER_URL = "https://fdc-verifiers-testnet.flare.network";
 const VERIFIER_KEY = "00000000-0000-0000-0000-000000000000";
@@ -247,11 +256,22 @@ const server = createServer(async (req, res) => {
     if (route === "GET /api/report") {
       const paymentHeader = req.headers["x-payment"];
       if (!paymentHeader) {
+        // Reuse only charges this endpoint opened. Matching on state alone let any
+        // unpaid charge on the demo account hijack the flow — a $10 checkout test
+        // left sitting here meant /api/report handed out its terms instead, and
+        // nothing that paid $2 could ever settle it.
         const reusable = flarePay
           .list(demoAccountId)
-          .find((c) => c.state === "awaiting_payment" && c.expiresAt * 1000 > Date.now() + 60_000);
+          .find(
+            (c) =>
+              c.state === "awaiting_payment" &&
+              c.metadata === X402_METADATA &&
+              c.usdCents === X402_USD_CENTS &&
+              c.expiresAt * 1000 > Date.now() + 60_000
+          );
         const charge =
-          reusable ?? (await flarePay.createCharge(200, "x402: market report", { accountId: demoAccountId }));
+          reusable ??
+          (await flarePay.createCharge(X402_USD_CENTS, X402_METADATA, { accountId: demoAccountId }));
         if (!reusable) void flarePay.awaitAndSettle(charge.id);
         return send(
           res,

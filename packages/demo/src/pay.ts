@@ -179,10 +179,15 @@ $("#demoPayBtn").addEventListener("click", async () => {
   btn.textContent = "Sending XRP from the demo wallet…";
   try {
     const res = await fetch(`${API}/api/charges/${charge.id}/demo-pay`, { method: "POST" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      // The server explains itself (cap, disabled, unknown charge). Showing a bare
+      // status code sent us hunting a permissions problem that was never there.
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      throw new Error(body.error ?? `HTTP ${res.status}`);
+    }
     btn.textContent = "Payment sent on XRPL ✓";
   } catch (err) {
-    btn.textContent = `Payment failed: ${String(err)}`;
+    btn.textContent = `Payment failed: ${(err as Error).message}`;
     btn.disabled = false;
   }
 });
