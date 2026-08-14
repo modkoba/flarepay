@@ -185,6 +185,20 @@ Needs a funded Coston2 key (`phase0-research/.secrets.json`) and XRPL testnet wa
 Pages: `/` landing · `/auth.html` signup · `/dashboard.html` merchant · `/pay.html` checkout ·
 `/pass.html` proof-of-access · `/example.html` Kelvin API.
 
+### Deploy
+
+[`vercel.json`](vercel.json) builds the front end and rewrites the three public
+endpoints that send no CORS headers (Flare's verifier, the DA layer, XRPL testnet), so
+the landing page runs — live FDC round included — with no back end at all. Charges need
+the server, so once it's hosted add one more rewrite:
+
+```json
+{ "source": "/pay-api/:path*", "destination": "https://YOUR-SERVER/:path*" }
+```
+
+Until then the asset grid falls back to what the deployed contracts support and says so,
+rather than posing as a live probe.
+
 ## Repo layout
 
 ```

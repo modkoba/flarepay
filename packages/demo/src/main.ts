@@ -239,6 +239,29 @@ void (async () => {
       )
       .join("");
   } catch {
-    grid.innerHTML = "";
+    // No charge API (e.g. the static site deployed ahead of the server). Fall back
+    // to what the contracts support, which doesn't depend on a probe: XRP settles by
+    // destination tag today, and the UTXO chains wait on escrow v2 regardless of what
+    // Flare's verifiers say right now. Labelled as unverified so it never poses as live.
+    grid.innerHTML =
+      [
+        { code: "XRP", name: "XRP", network: "XRP Ledger (testnet)", live: true, note: "settles by destination tag" },
+        { code: "DOGE", name: "Dogecoin", network: "Dogecoin (testnet)", live: false, note: "awaiting escrow v2 (address-matched settlement)" },
+        { code: "BTC", name: "Bitcoin", network: "Bitcoin (testnet)", live: false, note: "awaiting escrow v2 (address-matched settlement)" },
+      ]
+        .map(
+          (a) => `
+        <article class="coin ${a.live ? "coin-live" : "coin-soon"}">
+          <div class="coin-head">
+            <span class="coin-code">${a.code}</span>
+            <span class="coin-state">${a.live ? "live" : "soon"}</span>
+          </div>
+          ${a.name !== a.code ? `<span class="coin-name">${a.name}</span>` : ""}
+          <span class="coin-net">${a.network}</span>
+          <span class="coin-note">${a.note}</span>
+        </article>`
+        )
+        .join("") +
+      `<p class="coin-fallback">Live verifier status unavailable — showing what the deployed contracts support.</p>`;
   }
 })();

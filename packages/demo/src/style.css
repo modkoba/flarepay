@@ -379,6 +379,8 @@ footer .fine { font-size: 0.76rem; opacity: 0.75; }
 .coin-soon .coin-state { color: var(--muted); background: rgba(148, 155, 169, 0.12); }
 .coin-net { color: var(--muted); font-size: 0.74rem; font-family: var(--mono); }
 .coin-note { color: var(--muted); font-size: 0.78rem; margin-top: 8px; }
+/* Shown only when the charge API is unreachable; spans the whole grid. */
+.coin-fallback { grid-column: 1 / -1; color: var(--muted); font-size: 0.78rem; margin: 2px 0 0; }
 @media (max-width: 780px) { .coin-grid { grid-template-columns: 1fr; } }
 
 /* ── bento product grid ──────────────────────────────────────────── */
