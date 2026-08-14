@@ -12,3 +12,6 @@ phase0-research/output/
 .claude/settings.local.json
 .xrpl-testnet.json
 phase0-research/.xrpl-testnet.json
+
+# Internal planning docs (PRDs, demo/video scripts) — kept local, not published.
+docs/planning/

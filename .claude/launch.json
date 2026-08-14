@@ -4,14 +4,26 @@
     {
       "name": "flarepay-demo",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@flarekit/demo", "dev", "--port", "5173", "--strictPort"],
+      "runtimeArgs": [
+        "--filter",
+        "@flarekit/demo",
+        "dev",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
       "port": 5173
     },
     {
       "name": "flarepay-server",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@flarekit/pay-server", "start"],
-      "port": 8787
+      "runtimeArgs": [
+        "--filter",
+        "@flarekit/pay-server",
+        "start"
+      ],
+      "port": 8787,
+      "autoPort": false
     }
   ]
 }

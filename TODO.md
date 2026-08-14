@@ -1,35 +1,85 @@
 # FlarePay / FlareKit — TODO
 
-> Solo build for Flare Summer Signal hackathon (deadline Aug 14, Bounty 1).
-> Scope source of truth: `docs/planning/PRD.md` (v3, product-first: FlarePay powered by FlareKit).
-> Done = live Coston2 test green per feature (PRD §10), not "code compiles."
+> Solo build for Flare Summer Signal hackathon (deadline **Aug 14 — today**, Bounty 1).
+> Scope source of truth: the PRD in the local (unpublished) planning notes.
+> Done = live Coston2 test green per feature, not "code compiles."
 
-## Now — PRD v4 P0: platform (accounts + multi-asset) #platform
+## Now — submission blockers (Aug 14) #submission
 
-- [ ] Auth: signup/login/sessions (scrypt + httpOnly HMAC cookies), demo account seed
-- [ ] Multi-tenant store: accounts, per-account API keys/webhooks/payout/charges
-- [ ] Dashboard: login gate, payout settings (XRPL addr validated via verifier
-      prepareResponse — free/instant), API key panel, asset picker
-- [ ] FlarePayEscrowV2: asset-agnostic charges (feedId param), settleXrp + settleUtxo,
-      shared replay guard; deploy + re-prove XRP live (regression gate)
-- [ ] DOGE: xpub → per-charge deposit address, verifier-indexer watcher, settleUtxo;
-      live gate attempted (timebox 1 day — testnet DOGE sourcing is the risk)
-- [ ] Asset menu driven by kit.fdc.capabilities() (BTC shows "auto-enables when
-      Flare's verifier returns")
-- [ ] Checkout: per-asset payment instructions; x402 accepts[] lists enabled assets
+Ship order: README first (judges read it before they run anything), then push, then
+deploy, then video.
 
-## Now — remaining submission tasks
-
+- [x] **README rewritten** (Aug 14) — leads with "Settle by proof, not by signature"
+      to match the product; x402/EIP-3009 comparison table with the honest
+      "not wire-compatible with EIP-3009 facilitators" scope note; XrpAccessPass
+      section (the database-can't-do-this argument); Proven-live table expanded to 9
+      rows incl. access pass, Kelvin, crash recovery; all three contract addresses;
+      platform-vs-local modes replacing the stale "self-hosted only" framing;
+      repo layout + roadmap corrected. Every link and claim verified against code.
+- [ ] **Push repo to GitHub** — no git remote is configured; nothing has ever been
+      pushed. (Needs your go-ahead: public repo.)
 - [ ] Deploy demo + charge server to a public URL (needs your hosting choice)
-- [ ] Push repo to GitHub (needs your go-ahead — public repo)
-- [ ] 60s demo video: checkout (real timing, uncut) + x402 curl clip
+- [~] 3-min demo video — script + narration written (local planning notes, unpublished).
+      Structure starts a real payment at 0:20 and fills the FDC round with the argument,
+      so the 90–180 s wait is shown honestly with a running clock rather than cut around.
+      ElevenLabs voiceover generated for all 8 beats; runs 3:49, so it needs trimming to
+      fit 3:00. Remaining: dry run, trim, record, edit.
 - [ ] Submission writeup: judging-criteria mapping, pre-existing vs new work, contract
       addresses, roadmap
+
+## Now — verified green (Aug 14 audit)
+
+- [x] `pnpm -r build` clean across all four packages (sdk tsc, contracts solc,
+      pay-server `tsc --noEmit`, demo vite build)
+- [x] SDK unit suite: 17/17 pass
+- [x] Server boots PLATFORM (Supabase) mode, hydrated 12 charges from Postgres;
+      `/api/assets` live-probes the verifier (XRP available, DOGE/BTC honest reasons)
+- [x] No secrets tracked by git — only `.env.example` files; `.secrets.json`,
+      `.env`, wallet JSONs all ignored
 
 ## Next — P1 (traction & polish)
 
 - [ ] 2–3 outside testers run the checkout; log results as traction signal
 - [ ] npm publish `@flarekit/sdk`
+
+## Deferred — multi-asset (was PRD v4 P0; not making the deadline) #platform
+
+Cut honestly rather than faked: the asset menu already lists DOGE/BTC with a live
+reason string, so the product tells the truth about what it can settle today.
+
+- [ ] FlarePayEscrowV2: asset-agnostic charges (feedId param), settleXrp + settleUtxo,
+      shared replay guard; deploy + re-prove XRP live (regression gate)
+- [ ] DOGE: xpub → per-charge deposit address, verifier-indexer watcher, settleUtxo
+      (Flare's DOGE verifier already probes *ready* — escrow v2 is the only blocker)
+- [ ] Checkout: per-asset payment instructions (XRP-only today)
+- [ ] x402 `accepts[]` driven by `assets()` instead of hardcoded XRP (correct output
+      today, since XRP is the only settleable asset — becomes wrong the moment v2 lands)
+
+## Done — platform: accounts + multi-tenancy (Aug 9–11) #platform
+
+- [x] Auth: Supabase Auth (GoTrue JWTs, JWKS-verified via `getClaims`) replaced the
+      planned scrypt/HMAC-cookie scheme; `auth.html` signup/login, demo account seeded
+- [x] Multi-tenant store: Postgres (`supabase/migrations/0001_platform.sql`) — accounts,
+      per-account `fpk_` API keys, webhooks, payout, charges, all tenant-scoped;
+      LOCAL JSON mode still works with no Supabase keys set (nothing proven earlier broke)
+- [x] Dashboard: login gate (redirects to `/auth.html`), payout settings, API key panel,
+      asset picker
+- [x] Asset menu driven by live `kit.fdc.capabilities()` probes — BTC/DOGE show why they
+      are unavailable instead of being hidden or faked
+- [x] Onboarding: collect the merchant's payout address before charges
+- [x] Wallet-extension payments (GemWallet) + split hosted checkout onto its own page
+
+## Done — proof-of-access demo (Aug 10–11) #product
+
+- [x] `XrpAccessPass.sol` + `PremiumVault` deployed Coston2
+      (`0x91Cf78f8b2063C13Fc1FB5E4eE542413cD82B440` / `0x4E4aCE078e3cC725DBFE6E2499315A576ce56CBc`)
+      — a native XRP payment drives an unrelated Flare contract's state
+- [x] Proof-of-access UI (`pass.html`): watch a Flare contract change state
+- [x] Kelvin API — an example merchant built on FlarePay (credit packs, `example.html`)
+- [x] Repositioned around agent payments: x402 first, merchants second
+- [x] Landing page rebuilt on award-winning fintech patterns; three overclaims corrected
+      and the demo payer capped
+- [x] Ward moved out to its own repository (out of scope for this submission)
 
 ## Done — product hardening + dashboard (Aug 8) #product
 

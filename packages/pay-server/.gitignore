@@ -1,2 +1,5 @@
 data/
 .env
+
+# Verification-run dumps: real API keys and full charge-store snapshots.
+out/
