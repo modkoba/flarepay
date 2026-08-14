@@ -16,8 +16,13 @@ deploy, then video.
       rows incl. access pass, Kelvin, crash recovery; all three contract addresses;
       platform-vs-local modes replacing the stale "self-hosted only" framing;
       repo layout + roadmap corrected. Every link and claim verified against code.
-- [ ] **Push repo to GitHub** — no git remote is configured; nothing has ever been
-      pushed. (Needs your go-ahead: public repo.)
+- [x] **Pushed public: https://github.com/modkoba/flarepay** (Aug 14) — 34 commits, all
+      authored modkoba. Before publishing: purged two live `fpk_` API keys (verification
+      dumps in `packages/pay-server/out/`, since confirmed dead — absent from both
+      Supabase and the local store), purged Ward and its ~7k lines of vendored Kinetic
+      Solidity from history, and excluded `docs/planning/`. Local tag
+      `backup-pre-opensource-20260814-2315` still holds the pre-purge history — never
+      push tags, and delete it once you're happy.
 - [ ] Deploy demo + charge server to a public URL (needs your hosting choice)
 - [~] 3-min demo video — script + narration written (local planning notes, unpublished).
       Structure starts a real payment at 0:20 and fills the FDC round with the argument,
