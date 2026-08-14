@@ -57,6 +57,27 @@ $("#genAddr").addEventListener("click", () => {
 
 $("#addrInput").addEventListener("input", onAddressChanged);
 
+/**
+ * Back to a cold start. The page remembers your address, so once a pass is
+ * granted it reopens on "access granted" — right for a returning holder, wrong
+ * for demoing the before state. This forgets it and clears the panel without
+ * touching the chain: the old address keeps its pass until it lapses.
+ */
+$("#resetAddr").addEventListener("click", () => {
+  localStorage.removeItem("flarepay.passAddress");
+  address = "";
+  chargeId = "";
+  clearInterval(watching);
+  ($("#addrInput") as HTMLInputElement).value = "";
+  $<HTMLButtonElement>("#buyBtn").disabled = true;
+  $<HTMLButtonElement>("#readBtn").disabled = true;
+  $("#buyNote").textContent = "";
+  $("#vaultState").textContent = "no access";
+  $("#vaultPanel").classList.remove("unlocked");
+  $("#vaultOut").textContent = "canRead(you) → awaiting an address";
+  for (const step of document.querySelectorAll("[data-step]")) step.classList.remove("done");
+});
+
 function onAddressChanged() {
   const value = ($("#addrInput") as HTMLInputElement).value.trim();
   const valid = isAddress(value);
