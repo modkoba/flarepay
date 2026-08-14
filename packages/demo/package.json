@@ -11,7 +11,6 @@
     "test": "echo 'demo: no unit tests (verified via live run)'"
   },
   "dependencies": {
-    "@flarekit/sdk": "workspace:*",
     "@gemwallet/api": "^3.8.0",
     "@supabase/supabase-js": "^2.112.2",
     "ethers": "^6.13.0",

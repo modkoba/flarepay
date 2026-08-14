@@ -45,9 +45,6 @@ importers:
 
   packages/demo:
     dependencies:
-      '@flarekit/sdk':
-        specifier: workspace:*
-        version: link:../sdk
       '@gemwallet/api':
         specifier: ^3.8.0
         version: 3.8.0

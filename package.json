@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
+    "vercel-build": "pnpm --filter @flarekit/demo build",
     "test": "pnpm -r test",
     "clean": "pnpm -r clean"
   },

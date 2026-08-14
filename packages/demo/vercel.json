@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/verifier-api/:path*",
+      "destination": "https://fdc-verifiers-testnet.flare.network/:path*"
+    },
+    {
+      "source": "/da-api/:path*",
+      "destination": "https://ctn2-data-availability.flare.network/:path*"
+    },
+    {
+      "source": "/xrpl-api/:path*",
+      "destination": "https://s.altnet.rippletest.net:51234/:path*"
+    }
+  ]
+}
